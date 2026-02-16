@@ -1,0 +1,43 @@
+Assuming unrestricted shared filesystem usage.
+host: Ryans-MacAir.local
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cores: 8
+Rules claiming more threads will be scaled down.
+Job stats:
+job           count
+----------  -------
+all               1
+trim_video        1
+total             2
+
+Select jobs to execute...
+Execute 1 jobs...
+[Mon Feb 16 17:39:24 2026]
+localrule trim_video:
+    input: ../inputs/nputs/AAL_BL_3-25-24_OF_RM1.MP4
+    output: ../outputs/trimmed_AAL_BL_3-25-24_OF_RM1.MP4
+    jobid: 1
+    reason: Missing output files: ../outputs/trimmed_AAL_BL_3-25-24_OF_RM1.MP4
+    wildcards: vid=AAL_BL_3-25-24_OF_RM1.MP4
+    resources: tmpdir=/var/folders/y_/39v4gzrs6msd4px_2n26rv580000gn/T
+RuleException:
+CalledProcessError in file "/Users/ryanwitzman/icmh-scripts/workflow/Snakefile", line 32:
+Command 'set -euo pipefail;  /Users/ryanwitzman/icmh-scripts/venv/bin/python3.12 /Users/ryanwitzman/icmh-scripts/workflow/.snakemake/scripts/tmpg2b3rinh.trim_video.py' returned non-zero exit status 1.
+[Mon Feb 16 17:39:26 2026]
+Error in rule trim_video:
+    message: None
+    jobid: 1
+    input: ../inputs/nputs/AAL_BL_3-25-24_OF_RM1.MP4
+    output: ../outputs/trimmed_AAL_BL_3-25-24_OF_RM1.MP4
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look below for error messages
+[Mon Feb 16 17:39:26 2026]
+Error in rule trim_video:
+    message: None
+    jobid: 1
+    input: ../inputs/nputs/AAL_BL_3-25-24_OF_RM1.MP4
+    output: ../outputs/trimmed_AAL_BL_3-25-24_OF_RM1.MP4
+Complete log(s): /Users/ryanwitzman/icmh-scripts/workflow/.snakemake/log/2026-02-16T173923.951846.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.

@@ -1,0 +1,2 @@
+WorkflowError in file "/Users/ryanwitzman/icmh-scripts/workflow/Snakefile", line 3:
+Workflow defines configfile ../configs/config.yaml but it is not present or accessible (full checked path: /Users/ryanwitzman/configs/config.yaml).
