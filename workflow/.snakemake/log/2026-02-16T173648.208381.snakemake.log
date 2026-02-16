@@ -1,7 +1,0 @@
-Assuming unrestricted shared filesystem usage.
-host: Ryans-MacAir.local
-Building DAG of jobs...
-MissingInputException in rule all in file "/Users/ryanwitzman/icmh-scripts/workflow/Snakefile", line 26:
-Missing input files for rule all:
-    affected files:
-        ../outputs/trimmed_AAL_BL_3-25-24_OF_RM1.MP4
