@@ -20,7 +20,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install linting tools
-        run: pip install black flake8 pyyaml snakemake
+        run: pip install black flake8 pyyaml snakemake python-dotenv
 
       - name: Check formatting (black)
         run: black --check src/
