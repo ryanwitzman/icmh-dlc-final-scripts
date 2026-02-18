@@ -4,3 +4,9 @@ trim_duration_seconds: 300
 output_codec: libx264
 frame_rate_handling_policy: CFR
 output_dir_path: outputs/
+staging_dir:     "../staging"
+input_dir:       "../inputs"
+output_dir:      "../outputs"
+batch_id:        "batch_001"
+sharepoint_url:  "https://contoso.sharepoint.com/sites/MyProject"
+remote_path:     "Shared Documents/Videos"
