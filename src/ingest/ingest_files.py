@@ -37,7 +37,6 @@ import msal
 import requests
 from tqdm import tqdm
 
-
 # ── Constants ────────────────────────────────────────────────────────────────
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0"
