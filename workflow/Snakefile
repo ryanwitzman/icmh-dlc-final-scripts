@@ -1,32 +1,33 @@
 import os
+from dotenv import load_dotenv
+
 
 configfile: "../configs/config.yaml"
 
-# --- 1. SETUP PATHS ---
-# Update this to your actual input directory
-INPUT_DIR = "../inputs" 
-OUTPUT_DIR = "../outputs"
+load_dotenv("../.env")
+config["tenant_id"]     = os.environ["TENANT_ID"]
+config["client_id"]     = os.environ["CLIENT_ID"]
+config["client_secret"] = os.environ["CLIENT_SECRET"]
+# --- PATHS (shared across all rule files via include namespace) ---
+INPUT_DIR  = config.get("input_dir",  "../inputs")
+STAGING_DIR = config.get("staging_dir", "../staging")
+OUTPUT_DIR = config.get("output_dir", "../outputs")
 
-# --- 2. FIND FILES AND CREATE MAPPING ---
+# --- FILE DISCOVERY (done once here, available to all included rule files) ---
 raw_files = [
     os.path.join(dirpath, f)
-    for dirpath, dirnames, files in os.walk(INPUT_DIR)
-    for f in files if f.lower().endswith('.mp4')
+    for dirpath, dirnames, files in os.walk(STAGING_DIR)
+    for f in files if f.lower().endswith(".mp4")
 ]
 
-PATH_MAP = { os.path.basename(f): f for f in raw_files }
+PATH_MAP = {os.path.basename(f): f for f in raw_files}
 
+# --- INCLUDE RULE FILES ---
+include: "rules/ingest.smk"
+include: "rules/preprocess.smk"
 
-# --- 3. RULES ---
-
+# --- FINAL TARGET ---
 rule all:
     input:
+        rules.validate_transfer.output,                   # ingest must finish first
         expand(f"{OUTPUT_DIR}/trimmed_{{vid}}", vid=PATH_MAP.keys())
-
-rule trim_video:
-    input:
-        lambda wildcards: PATH_MAP[wildcards.vid]
-    output:
-        f"{OUTPUT_DIR}/trimmed_{{vid}}"
-    script:
-        "../src/trim/trim_video.py"
