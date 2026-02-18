@@ -10,6 +10,11 @@ jobs:
   lint-and-validate:
     runs-on: ubuntu-latest
 
+    env:
+      TENANT_ID: dummy-tenant-id
+      CLIENT_ID: dummy-client-id
+      CLIENT_SECRET: dummy-client-secret
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,7 +25,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install linting tools
-        run: pip install black flake8 pyyaml snakemake python-dotenv
+        run: pip install black flake8 pyyaml snakemake python-dotenv msal requests tqdm
 
       - name: Check formatting (black)
         run: black --check src/
@@ -39,6 +44,10 @@ jobs:
             "output_codec",
             "frame_rate_handling_policy",
             "output_dir_path",
+            "sharepoint_url",
+            "remote_path",
+            "staging_dir",
+            "batch_id",
           ]
           with open("configs/config.yaml") as f:
               cfg = yaml.safe_load(f)
@@ -49,9 +58,16 @@ jobs:
           print("config.yaml is valid.")
           EOF
 
-      - name: SnakeMake dry-run
+      - name: Create dummy .env for dry-run
         run: |
-          mkdir -p inputs outputs
-          # Create a dummy .mp4 so SnakeMake has something to discover
-          touch inputs/test_video.mp4
+          cat > .env <<EOF
+          TENANT_ID=dummy-tenant-id
+          CLIENT_ID=dummy-client-id
+          CLIENT_SECRET=dummy-client-secret
+          EOF
+
+      - name: Snakemake dry-run
+        run: |
+          mkdir -p inputs staging outputs
+          touch staging/test_video.mp4
           snakemake --directory workflow/ --cores 1 --dry-run
