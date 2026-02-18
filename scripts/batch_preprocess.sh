@@ -1,0 +1,1 @@
+snakemake --directory workflow/ --cores 8
