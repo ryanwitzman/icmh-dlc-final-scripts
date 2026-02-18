@@ -3,3 +3,4 @@ fps: 30
 trim_duration_seconds: 300
 output_codec: libx264
 frame_rate_handling_policy: CFR
+output_dir_path: outputs/
