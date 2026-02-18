@@ -9,3 +9,4 @@ outputs/
 .snakemake/
 /workflow/.snakemake/
 .DS_STORE
+.mp3
