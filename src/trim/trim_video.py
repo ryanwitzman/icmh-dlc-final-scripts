@@ -2,6 +2,24 @@ import os
 import shutil
 from moviepy.video.io.VideoFileClip import VideoFileClip
 
+# Snakemake injects this object at runtime. The mock below allows the
+# script to be linted and tested outside of a Snakemake context.
+try:
+    snakemake
+except NameError:
+    from types import SimpleNamespace
+
+    snakemake = SimpleNamespace(
+        input=["inputs/test_video.mp4"],
+        output=["outputs/trimmed_test_video.mp4"],
+        config={
+            "trim_start_seconds": 60,
+            "fps": 30,
+            "trim_duration_seconds": 300,
+            "output_codec": "libx264",
+            "frame_rate_handling_policy": "CFR",
+        },
+    )
 
 ffmpeg_exe = shutil.which("ffmpeg")
 if ffmpeg_exe:
