@@ -2,7 +2,6 @@ import os
 import shutil
 from moviepy.video.io.VideoFileClip import VideoFileClip
 
-import imageio_ffmpeg as ffmpeg
 
 ffmpeg_exe = shutil.which("ffmpeg")
 if ffmpeg_exe:

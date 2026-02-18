@@ -1,0 +1,5 @@
+# .flake8
+[flake8]
+max-line-length = 100
+per-file-ignores =
+    src/trim/trim_video.py: F821

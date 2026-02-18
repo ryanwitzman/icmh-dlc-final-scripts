@@ -3,7 +3,6 @@
 import os
 import shutil
 from moviepy.video.io.VideoFileClip import VideoFileClip
-from moviepy.video.fx import BlackAndWhite, LumContrast
 import imageio_ffmpeg as ffmpeg
 import yaml
 import argparse
@@ -79,8 +78,14 @@ def process_videos():
             )
 
             # Write the file using the defined FPS and the Frame Rate Handling Policy (ffmpeg_params)
+            clip.write_videofile(output_path, codec=OUTPUT_CODEC, fps=FPS, ffmpeg_params=ffmpeg_params)
+
+            # Break it like this:
             clip.write_videofile(
-                output_path, codec=OUTPUT_CODEC, fps=FPS, ffmpeg_params=ffmpeg_params
+                output_path,
+                codec=OUTPUT_CODEC,
+                fps=FPS,
+                ffmpeg_params=ffmpeg_params,
             )
 
             clip.close()
