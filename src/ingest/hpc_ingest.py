@@ -27,6 +27,7 @@ import argparse
 import csv
 import hashlib
 import logging
+import os
 import sys
 import time
 from datetime import datetime, timezone
@@ -37,10 +38,16 @@ import msal
 import requests
 from tqdm import tqdm
 
+
 # ── Constants ────────────────────────────────────────────────────────────────
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0"
 CHUNK_SIZE = 8 * 1024 * 1024  # 8 MB download chunks
+SCOPES = [
+    "https://graph.microsoft.com/Sites.Read.All",
+    "https://graph.microsoft.com/Files.Read.All",
+]
+TOKEN_CACHE = os.path.join(os.path.expanduser("~"), ".hpc_ingest_token_cache.json")
 LOG_COLUMNS = [
     "batch_id",
     "remote_path",
@@ -74,21 +81,43 @@ def setup_logging(log_dir: Path, batch_id: str) -> logging.Logger:
     return logging.getLogger("hpc_ingest")
 
 
-# ── Microsoft Graph auth ──────────────────────────────────────────────────────
+# ── Microsoft Graph auth (delegated — device code flow) ───────────────────────
 
 
-def get_access_token(tenant_id: str, client_id: str, client_secret: str) -> str:
+def get_access_token(tenant_id: str, client_id: str) -> str:
+    # Load persisted token cache so re-runs don't require re-auth
+    cache = msal.SerializableTokenCache()
+    if os.path.exists(TOKEN_CACHE):
+        cache.deserialize(open(TOKEN_CACHE).read())
+
     authority = f"https://login.microsoftonline.com/{tenant_id}"
-    app = msal.ConfidentialClientApplication(
+    app = msal.PublicClientApplication(
         client_id,
         authority=authority,
-        client_credential=client_secret,
+        token_cache=cache,
     )
-    result = app.acquire_token_for_client(
-        scopes=["https://graph.microsoft.com/.default"]
-    )
+
+    # Try silent auth from cache first
+    accounts = app.get_accounts()
+    result = app.acquire_token_silent(SCOPES, account=accounts[0]) if accounts else None
+
+    if not result:
+        # Prompt device code login
+        flow = app.initiate_device_flow(scopes=SCOPES)
+        if "user_code" not in flow:
+            raise RuntimeError(f"Device flow failed: {flow.get('error_description')}")
+        print("\n" + flow["message"])  # prints the URL + code for the user
+        print()
+        result = app.acquire_token_by_device_flow(flow)
+
     if "access_token" not in result:
         raise RuntimeError(f"Auth failed: {result.get('error_description')}")
+
+    # Persist cache for next run
+    if cache.has_state_changed:
+        with open(TOKEN_CACHE, "w") as f:
+            f.write(cache.serialize())
+
     return result["access_token"]
 
 
@@ -246,7 +275,7 @@ def main():
     )
     parser.add_argument("--tenant-id", required=True)
     parser.add_argument("--client-id", required=True)
-    parser.add_argument("--client-secret", required=True)
+    # no --client-secret: delegated auth uses device code flow instead
     parser.add_argument(
         "--batch-id", default=None, help="Unique batch label (default: timestamp)"
     )
@@ -270,7 +299,7 @@ def main():
 
     # ── 2. Auth ──────────────────────────────────────────────────────────────
     logger.info("Authenticating with Microsoft Graph …")
-    token = get_access_token(args.tenant_id, args.client_id, args.client_secret)
+    token = get_access_token(args.tenant_id, args.client_id)
 
     # ── 3. Resolve root folder ───────────────────────────────────────────────
     logger.info("Resolving SharePoint path: %s", args.remote_path)

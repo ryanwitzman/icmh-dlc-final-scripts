@@ -21,7 +21,6 @@ rule run_ingest:
         staging_dir    = STAGING_DIR,
         tenant_id      = config["tenant_id"],
         client_id      = config["client_id"],
-        client_secret  = config["client_secret"],
         batch_id       = BATCH_ID,
     log:
         f"{LOG_DIR}/{BATCH_ID}_ingest_snakemake.log"
@@ -33,7 +32,6 @@ rule run_ingest:
             --staging-dir     "{params.staging_dir}" \
             --tenant-id       "{params.tenant_id}" \
             --client-id       "{params.client_id}" \
-            --client-secret   "{params.client_secret}" \
             --batch-id        "{params.batch_id}" \
             --skip-existing \
         > {log} 2>&1
