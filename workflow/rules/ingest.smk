@@ -13,7 +13,8 @@ INGEST_FLAG = f"{LOG_DIR}/{BATCH_ID}.ingest.done"  # sentinel so rule all can de
 rule run_ingest:
     """Pull all MP4s from SharePoint into the staging directory."""
     output:
-        touch(INGEST_FLAG)
+        flag     = touch(INGEST_FLAG),
+        manifest = MANIFEST
     params:
         sharepoint_url = config["sharepoint_url"],
         remote_path    = config["remote_path"],
