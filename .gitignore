@@ -10,3 +10,4 @@ outputs/
 /workflow/.snakemake/
 .DS_STORE
 *.mp3
+staging/
