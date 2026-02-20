@@ -1,0 +1,33 @@
+import os
+from dotenv import load_dotenv
+
+
+configfile: "../configs/config.yaml"
+
+load_dotenv("../.env")
+config["tenant_id"]     = os.environ["TENANT_ID"]
+config["client_id"]     = os.environ["CLIENT_ID"]
+config["client_secret"] = os.environ["CLIENT_SECRET"]
+# --- PATHS (shared across all rule files via include namespace) ---
+INPUT_DIR  = config.get("input_dir",  "../inputs")
+STAGING_DIR = config.get("staging_dir", "../staging")
+OUTPUT_DIR = config.get("output_dir", "../outputs")
+
+# --- FILE DISCOVERY (done once here, available to all included rule files) ---
+raw_files = [
+    os.path.join(dirpath, f)
+    for dirpath, dirnames, files in os.walk(STAGING_DIR)
+    for f in files if f.lower().endswith(".mp4")
+]
+
+PATH_MAP = {os.path.basename(f): f for f in raw_files}
+
+# --- INCLUDE RULE FILES ---
+include: "rules/ingest.smk"
+include: "rules/preprocess.smk"
+
+# --- FINAL TARGET ---
+rule all:
+    input:
+        rules.validate_transfer.output,                   # ingest must finish first
+        expand(f"{OUTPUT_DIR}/trimmed_{{vid}}", vid=PATH_MAP.keys())
