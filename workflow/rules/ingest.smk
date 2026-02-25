@@ -5,11 +5,6 @@ and post-transfer integrity validation.
 Relies on STAGING_DIR and config being defined in the master Snakefile.
 """
 
-BATCH_ID    = config.get("batch_id", "batch_001")
-LOG_DIR     = f"{STAGING_DIR}/_logs"
-MANIFEST    = f"{LOG_DIR}/{BATCH_ID}_manifest.csv"
-INGEST_FLAG = f"{LOG_DIR}/{BATCH_ID}.ingest.done"  # sentinel so rule all can depend on it
-
 rule run_ingest:
     """Pull all MP4s from SharePoint into the staging directory."""
     output:

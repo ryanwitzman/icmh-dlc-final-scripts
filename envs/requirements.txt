@@ -1,0 +1,155 @@
+# Python 3.10 required:
+#   snakemake 7.x  → supports Python 3.10
+#   tensorflow-gpu 2.10.0 → last native Windows GPU build, max Python 3.10
+#
+# Setup:
+#   conda create -n icmh-dlc python=3.10 -y
+#   conda activate icmh-dlc
+#   conda install -c conda-forge cudatoolkit=11.2 cudnn=8.1.0 -y
+#   uv pip install -r requirements.txt
+
+# ── Hard pins: these MUST be exact or nothing works ─────────────────────────
+tensorflow-gpu==2.10.0
+tensorflow-estimator==2.10.0
+keras==2.10.0
+tensorboard==2.10.1
+protobuf==3.19.6          # TF 2.10 breaks with protobuf>=4
+flatbuffers==2.0.7        # TF 2.10 breaks with flatbuffers>=23
+numpy==1.23.5             # TF 2.10 ceiling; numba 0.58 also requires <1.24
+numba==0.58.1             # must match numpy
+llvmlite==0.41.1          # must match numba
+snakemake==7.32.4         # last snakemake supporting Python 3.10
+google-auth-oauthlib==0.4.6  # TF 2.10 requires <0.5
+
+# ── Soft pins: uv can resolve these freely ───────────────────────────────────
+# Snakemake deps
+pulp==2.7.0
+stopit
+toposort
+throttler
+conda-inject
+reretry
+datrie
+dpath
+yte
+configargparse
+smart-open
+connection-pool
+tabulate
+
+# TF deps (let uv find compatible versions)
+tensorboard-data-server
+tensorboard-plugin-wit
+keras-preprocessing
+astunparse
+gast
+google-pasta
+opt-einsum
+wrapt
+termcolor
+absl-py
+grpcio
+google-auth
+oauthlib
+requests-oauthlib
+
+# NumPy ecosystem (constrained by numpy==1.23.5)
+scipy
+scikit-learn
+scikit-image
+statsmodels
+pandas
+patsy
+
+# DeepLabCut
+deeplabcut==2.3.11
+dlclibrary
+tensorpack
+tf-slim
+filterpy
+imgaug
+shapely==1.8.5            # imgaug breaks with shapely 2.x
+
+# Vision / video
+opencv-python
+imageio>=2.33.0           # 2.31.x caps pillow<10.1
+imageio-ffmpeg
+pillow
+tifffile
+networkx
+lazy-loader
+
+# Plotting
+matplotlib
+contourpy
+fonttools
+cycler
+kiwisolver
+pyparsing
+
+# Data / IO
+h5py
+msgpack
+msgpack-numpy
+joblib
+threadpoolctl
+
+# Auth / networking
+msal
+pyjwt
+cryptography
+cffi
+pycparser
+pyasn1
+pyasn1-modules
+rsa
+requests
+urllib3
+charset-normalizer
+idna
+httpx
+httpcore
+anyio
+
+# CLI / UI
+typer
+click
+rich
+colorama
+shellingham
+pygments
+markdown-it-py
+mdurl
+
+# Misc
+python-dotenv
+pyyaml
+ruamel-yaml
+packaging
+appdirs
+psutil
+tqdm
+six
+python-dateutil
+pytz
+tzdata
+platformdirs
+pyreadline3
+humanfriendly
+werkzeug
+huggingface-hub
+gitpython
+gitdb
+smmap
+pyzmq
+traitlets
+nbformat
+jupyter-core
+fastjsonschema
+jsonschema
+attrs
+immutables
+exceptiongroup
+annotated-doc
+docutils
+h11
