@@ -12,4 +12,4 @@ rule trim_video:
     log:
         f"{OUTPUT_DIR}/logs/trim_{{vid}}.log"
     script:
-        "src/trim/trim_video.py"
+        "../../src/trim/trim_video.py"

@@ -13,7 +13,7 @@ rule dlc_inference:
         time="04:00:00"
     shell:
         """
-        python src/dlc/run_dlc_inference.py \
+        python ../src/dlc/run_dlc_inference.py \
             --videos {input.video} \
             --out_dir {params.out_dir} \
             --log_file {output.log_file}
