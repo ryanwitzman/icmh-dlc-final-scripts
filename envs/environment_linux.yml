@@ -6,7 +6,7 @@ dependencies:
   - python=3.10
   - cudatoolkit=11.2
   - cudnn=8.1
-  - ffmpeg
+  - ffmpeg=6.1
   - pip
   - pip:
       - absl-py==2.4.0
