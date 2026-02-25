@@ -32,7 +32,7 @@ snakemake \
   --jobs 10 \
   --use-conda \
   --conda-prefix /N/project/msk_dl/conda-envs \
-  --default-resources partition="gpu" gpus=1 mem_mb=16000 runtime="02:00:00" \
+  --default-resources "partition='gpu'" gpus=1 mem_mb=16000 "runtime='02:00:00'" \
   --latency-wait 120 \
   --rerun-incomplete \
   --printshellcmds
