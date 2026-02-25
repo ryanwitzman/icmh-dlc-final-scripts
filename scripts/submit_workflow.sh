@@ -3,18 +3,32 @@
 #SBATCH --output=logs/snakemake_master_%j.out
 #SBATCH --error=logs/snakemake_master_%j.err
 #SBATCH --time=48:00:00
-#SBATCH --partition=standard 
+#SBATCH --partition=general         # master job just orchestrates, no GPU needed
 #SBATCH --ntasks=1
-#SBATCH --mem=4G
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=8G
+#SBATCH --account=r01704
 
-# Load your environment (Conda or Container)
-# e.g., module load miniconda3
-# source activate dlc_env
+# ── Environment ──────────────────────────────────────────────────────────────
+module load conda/25.3.0
+conda activate icmh-dlc-310
 
-# Run Snakemake and tell it to use Slurm for its jobs
-# It maps the resources (gpus, mem_mb, time) defined in your rules to Slurm SBATCH arguments.
-snakemake --executor slurm \
-          --jobs 10 \
-          --use-conda \
-          --default-resources slurm_partition="gpu" slurm_account="r01704" \
-          --latency-wait 60
+# ── Working directory ─────────────────────────────────────────────────────────
+cd /N/project/msk_dl/icmh-dlc-final-scripts/workflow
+
+
+# ── Snakemake (submits GPU jobs as child SLURM jobs) ──────────────────────────
+snakemake \
+  --executor slurm \
+  --jobs 10 \
+  --use-conda \
+  --conda-prefix /N/project/msk_dl/conda-envs \
+  --default-resources \
+      slurm_partition="gpu" \
+      slurm_account="r01704" \
+      slurm_extra="'--gpus-per-node=1'" \
+      mem_mb=16000 \
+      runtime=120 \
+  --latency-wait 120 \
+  --rerun-incomplete \
+  --printshellcmds
