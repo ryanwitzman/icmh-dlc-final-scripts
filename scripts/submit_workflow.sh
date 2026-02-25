@@ -16,5 +16,5 @@
 snakemake --executor slurm \
           --jobs 10 \
           --use-conda \
-          --default-resources slurm_partition="gpu" slurm_account="your_account" \
+          --default-resources slurm_partition="gpu" slurm_account="r01704" \
           --latency-wait 60
