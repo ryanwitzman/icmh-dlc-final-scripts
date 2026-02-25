@@ -14,7 +14,7 @@ module load conda/25.3.0
 conda activate icmh-dlc-310
 
 # ── Working directory ─────────────────────────────────────────────────────────
-cd /N/project/msk_dl/icmh-dlc-final-scripts
+cd /N/project/msk_dl/icmh-dlc-final-scripts/workflow
 
 # Make sure logs dir exists
 mkdir -p logs
