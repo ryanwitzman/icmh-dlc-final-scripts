@@ -1,17 +1,17 @@
 import os
 from dotenv import load_dotenv
 
-configfile: "configs/config.yaml"
+configfile: "../configs/config.yaml"
 
-load_dotenv(".env")
+load_dotenv("../.env")
 config["tenant_id"]     = os.getenv("TENANT_ID")
 config["client_id"]     = os.getenv("CLIENT_ID")
 config["client_secret"] = os.getenv("CLIENT_SECRET")
 
 # --- PATHS ---
-INPUT_DIR   = config.get("input_dir",   "inputs")
-STAGING_DIR = config.get("staging_dir", "staging")
-OUTPUT_DIR  = config.get("output_dir",  "outputs")
+INPUT_DIR   = config.get("input_dir",   "../inputs")
+STAGING_DIR = config.get("staging_dir", "../staging")
+OUTPUT_DIR  = config.get("output_dir",  "../outputs")
 
 # --- SHARED INGEST VARIABLES (used by preprocess.smk even when ingest is skipped) ---
 BATCH_ID    = config.get("batch_id", "batch_001")
