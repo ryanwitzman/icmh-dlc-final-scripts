@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-configfile: "../configs/config.yaml"
+configfile: "configs/config.yaml"
 
 load_dotenv("../.env")
 config["tenant_id"]     = os.getenv("TENANT_ID")
