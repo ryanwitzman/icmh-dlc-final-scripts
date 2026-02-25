@@ -14,21 +14,25 @@ module load conda/25.3.0
 conda activate icmh-dlc-310
 
 # ── Working directory ─────────────────────────────────────────────────────────
-cd /N/project/msk_dl/icmh-dlc-final-scripts/workflow
+cd /N/project/msk_dl/icmh-dlc-final-scripts
 
+# Make sure logs dir exists
+mkdir -p logs
 
 # ── Snakemake (submits GPU jobs as child SLURM jobs) ──────────────────────────
 snakemake \
-  --executor slurm \
+  --cluster "sbatch --partition={resources.partition} \
+                    --account=r01704 \
+                    --gpus-per-node={resources.gpus} \
+                    --mem={resources.mem_mb}M \
+                    --time={resources.runtime} \
+                    --cpus-per-task={threads} \
+                    --output=logs/slurm_%j.out \
+                    --error=logs/slurm_%j.err" \
   --jobs 10 \
   --use-conda \
   --conda-prefix /N/project/msk_dl/conda-envs \
-  --default-resources \
-      slurm_partition="gpu" \
-      slurm_account="r01704" \
-      slurm_extra="'--gpus-per-node=1'" \
-      mem_mb=16000 \
-      runtime=120 \
+  --default-resources partition="gpu" gpus=1 mem_mb=16000 runtime="02:00:00" \
   --latency-wait 120 \
   --rerun-incomplete \
   --printshellcmds
