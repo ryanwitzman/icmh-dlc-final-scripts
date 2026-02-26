@@ -1,90 +1,270 @@
+"""
+run_dlc_inference.py
+--------------------
+Run DLC inference on a single trimmed video.
+Called per-video by Snakemake's dlc_inference rule.
+
+Usage:
+    python run_dlc_inference.py \
+        --videos /outputs/trimmed_resized/trimmed_VIDEO.mp4 \
+        --out_dir /outputs/dlc_results \
+        --out_h5  /outputs/dlc_results/VIDEO_superanimal.h5 \
+        --log_file /outputs/logs/VIDEO_inference.log \
+        [--superanimal superanimal_topviewmouse | --config_path /project/config.yaml] \
+        [--video_adapt]
+"""
+
 import argparse
-import os
-import time
 import logging
+import os
+import platform
 import shutil
-import glob
+import subprocess
 import sys
-import deeplabcut
-
-# Add conda env's CUDA runtime to DLL search path (Windows only)
-# This is necessary because Windows doesn't auto-search conda's Library/bin
-conda_env = os.path.dirname(sys.executable)  # e.g. .../envs/icmh-dlc
-cuda_dll_path = os.path.join(conda_env, "Library", "bin")
-if os.path.exists(cuda_dll_path):
-    os.add_dll_directory(cuda_dll_path)
+import time
+from pathlib import Path
 
 
-def setup_logger(log_file):
-    os.makedirs(os.path.dirname(log_file), exist_ok=True)
-    logging.basicConfig(
-        filename=log_file,
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+
+def setup_logger(log_file: str) -> logging.Logger:
+    log_path = Path(log_file)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    logger = logging.getLogger("dlc_inference")
+    logger.setLevel(logging.DEBUG)
+    logger.propagate = False
+
+    fmt = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
-    return logging.getLogger()
+    fh = logging.FileHandler(log_path)
+    fh.setFormatter(fmt)
+    logger.addHandler(fh)
+
+    sh = logging.StreamHandler(sys.stdout)
+    sh.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
+    logger.addHandler(sh)
+
+    return logger
+
+
+# ---------------------------------------------------------------------------
+# Environment info
+# ---------------------------------------------------------------------------
+
+
+def log_environment(logger: logging.Logger) -> None:
+    """Log DLC version, install method, GPU allocation, and host info."""
+    try:
+        import deeplabcut
+
+        dlc_version = getattr(deeplabcut, "__version__", "unknown")
+    except ImportError:
+        dlc_version = "NOT INSTALLED"
+
+    prefix = os.environ.get("CONDA_PREFIX", os.path.dirname(sys.executable))
+    conda_meta = Path(prefix) / "conda-meta"
+    if list(conda_meta.glob("deeplabcut-*.json")):
+        install_method = f"conda  (env: {prefix})"
+    else:
+        try:
+            r = subprocess.run(
+                [sys.executable, "-m", "pip", "show", "deeplabcut"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            install_method = (
+                f"pip  (env: {prefix})"
+                if r.returncode == 0
+                else f"unknown  (env: {prefix})"
+            )
+        except Exception:
+            install_method = f"unknown  (env: {prefix})"
+
+    cuda_vis = os.environ.get("CUDA_VISIBLE_DEVICES", "NOT SET")
+    gpu_lines = [f"CUDA_VISIBLE_DEVICES={cuda_vis}"]
+    try:
+        r = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=index,name,memory.total,memory.free,utilization.gpu",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        if r.returncode == 0:
+            for row in r.stdout.strip().splitlines():
+                idx, name, mem_total, mem_free, util = [
+                    c.strip() for c in row.split(",")
+                ]
+                gpu_lines.append(
+                    f"  GPU {idx}: {name} | mem {mem_free}/{mem_total} MiB free | util {util}%"
+                )
+    except FileNotFoundError:
+        gpu_lines.append("  nvidia-smi not found")
+    except Exception as e:
+        gpu_lines.append(f"  GPU query error: {e}")
+
+    logger.info("=" * 60)
+    logger.info(f"Host             : {platform.node()}")
+    logger.info(f"Python           : {sys.version.split()[0]}  ({sys.executable})")
+    logger.info(f"DLC version      : {dlc_version}")
+    logger.info(f"DLC install      : {install_method}")
+    logger.info(f"OS               : {platform.system()} {platform.release()}")
+    logger.info("GPU info:\n" + "\n".join(gpu_lines))
+    logger.info("=" * 60)
+
+
+# ---------------------------------------------------------------------------
+# Output collection
+# ---------------------------------------------------------------------------
+
+
+def collect_and_move_outputs(
+    video_path: Path, out_dir: Path, logger: logging.Logger
+) -> None:
+    """Move DLC output files written beside the source video into out_dir."""
+    stem = video_path.stem
+    patterns = [f"{stem}DLC_*", f"{stem}*superanimal*", f"{stem}*.pickle"]
+
+    found: list[Path] = []
+    for pat in patterns:
+        found.extend(video_path.parent.glob(pat))
+
+    seen: set = set()
+    for src in found:
+        if src in seen:
+            continue
+        seen.add(src)
+        dst = out_dir / src.name
+        if src.resolve() != dst.resolve():
+            shutil.move(str(src), dst)
+            logger.info(f"  moved: {src.name} → {dst}")
+        else:
+            logger.info(f"  output: {dst.name}")
+
+    if not seen:
+        logger.warning("No DLC output files found beside source video.")
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run DLC SuperAnimal Inference on a list of trimmed videos."
+        description="Run DLC inference on a trimmed video.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--videos",
+        "--videos", required=True, nargs="+", help="Path(s) to trimmed video file(s)."
+    )
+    parser.add_argument(
+        "--out_dir", required=True, help="Directory to save all DLC outputs."
+    )
+    parser.add_argument(
+        "--out_h5",
         required=True,
-        nargs="+",
-        help="List of paths to the trimmed videos.",
+        help="Predictable H5 destination path declared as Snakemake output.",
+    )
+    parser.add_argument(
+        "--log_file", required=True, help="Log file path (managed by Snakemake)."
     )
 
-    # Removed --dlc_config since SuperAnimal handles weights automatically
-    parser.add_argument(
-        "--out_dir", required=True, help="Directory to save DLC output (H5/CSV)."
+    grp = parser.add_mutually_exclusive_group()
+    grp.add_argument(
+        "--superanimal",
+        default="superanimal_topviewmouse",
+        metavar="MODEL_NAME",
+        help="SuperAnimal model name.",
     )
+    grp.add_argument(
+        "--config_path", help="Path to DLC project config.yaml (standard project mode)."
+    )
+
     parser.add_argument(
-        "--log_file", required=True, help="Path to save the execution log."
+        "--video_adapt",
+        action="store_true",
+        help="(SuperAnimal only) Enable unsupervised video adaptation.",
     )
     args = parser.parse_args()
 
     logger = setup_logger(args.log_file)
-    logger.info(f"Starting DLC SuperAnimal Inference for videos: {args.videos}")
+    log_environment(logger)
 
-    # Check GPU Allocation
-    cuda_devices = os.environ.get("CUDA_VISIBLE_DEVICES", "Not Set / CPU")
-    logger.info(f"GPU Allocation (CUDA_VISIBLE_DEVICES): {cuda_devices}")
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    os.makedirs(args.out_dir, exist_ok=True)
-    start_time = time.time()
+    videos = [Path(v) for v in args.videos]
+    missing = [v for v in videos if not v.exists()]
+    if missing:
+        logger.error(f"Video file(s) not found: {missing}")
+        sys.exit(1)
 
+    logger.info(f"Videos       : {[str(v) for v in videos]}")
+    logger.info(f"Output dir   : {out_dir}")
+    logger.info(f"H5 target    : {args.out_h5}")
+    logger.info(f"Model/config : {args.config_path or args.superanimal}")
+
+    import deeplabcut
+
+    t0 = time.time()
     try:
-        # Run inference using the pre-trained SuperAnimal Model Zoo
-        deeplabcut.video_inference_superanimal(
-            args.videos,
-            "superanimal_topviewmouse",
-            videotype=".mp4",
-            video_adapt=False,  # Set to True if you want to perform unsupervised video adaptation
-        )
-
-        # SuperAnimal typically saves output files in the same directory as the input video.
-        for video_path in args.videos:
-            video_dir = os.path.dirname(os.path.abspath(video_path))
-            base_name = os.path.splitext(os.path.basename(video_path))[0]
-
-            # Find all files generated for this video (h5, csv, pickle)
-            generated_files = glob.glob(
-                os.path.join(video_dir, f"{base_name}*superanimal*")
+        if args.config_path:
+            logger.info("Mode: standard DLC project")
+            deeplabcut.analyze_videos(
+                args.config_path,
+                [str(v) for v in videos],
+                videotype=videos[0].suffix.lstrip(".") or "mp4",
+                save_as_csv=True,
+                destfolder=str(out_dir),
             )
-            for file_path in generated_files:
-                shutil.move(
-                    file_path, os.path.join(args.out_dir, os.path.basename(file_path))
-                )
+        else:
+            logger.info(
+                f"Mode: SuperAnimal ({args.superanimal}), "
+                f"video_adapt={args.video_adapt})"
+            )
+            deeplabcut.video_inference_superanimal(
+                [str(v) for v in videos],
+                args.superanimal,
+                videotype=videos[0].suffix.lstrip(".") or "mp4",
+                video_adapt=args.video_adapt,
+            )
+            for video_path in videos:
+                collect_and_move_outputs(video_path, out_dir, logger)
 
-        runtime = time.time() - start_time
-        logger.info(f"SUCCESS: Inference completed in {runtime:.2f} seconds.")
+        elapsed = time.time() - t0
+
+        # ------------------------------------------------------------------
+        # Copy the H5 to the predictable path Snakemake declared as output.
+        # DLC's actual filename encodes model/shuffle/iteration — unpredictable.
+        # We find it and copy to --out_h5 so Snakemake can track it reliably.
+        # ------------------------------------------------------------------
+        out_h5_path = Path(args.out_h5)
+        out_h5_path.parent.mkdir(parents=True, exist_ok=True)
+
+        h5_candidates = sorted(out_dir.glob(f"{videos[0].stem}*.h5"))
+        if not h5_candidates:
+            raise FileNotFoundError(
+                f"No H5 found in {out_dir} for {videos[0].stem} — "
+                "DLC may have failed silently. Check the log above."
+            )
+        src_h5 = max(h5_candidates, key=lambda p: p.stat().st_mtime)
+        shutil.copy2(src_h5, out_h5_path)
+        logger.info(f"H5 output    : {src_h5.name} → {out_h5_path}")
+        logger.info(f"SUCCESS: inference completed in {elapsed:.1f}s")
 
     except Exception as e:
-        logger.error(f"FAILED: Inference error occurred: {e}", exc_info=True)
-        raise e
+        logger.error(f"FAILED: {e}", exc_info=True)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

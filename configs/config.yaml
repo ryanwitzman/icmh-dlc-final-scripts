@@ -1,6 +1,6 @@
 trim_start_seconds: 60
 fps: 30
-trim_duration_seconds: 300
+trim_duration_seconds: 15 #change back to 300 for deploy on HPC
 output_codec: libx264
 frame_rate_handling_policy: CFR
 output_dir_path: outputs/
@@ -16,3 +16,6 @@ dlc_project_config: "/path/to/your/DLC_Project/config.yaml"
 dlc_version: "2.3.5"
 dlc_install_method: "conda" # or "apptainer" / "docker"
 use_gpu: true
+superanimal_model: superanimal_topviewmouse
+resize_scale: "iw/2:ih/2"
+pcutoff: 0.6   # x/y set to NaN when likelihood < this

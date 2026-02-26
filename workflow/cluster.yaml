@@ -1,0 +1,44 @@
+# cluster.yaml
+# Per-rule Slurm resource overrides.
+# '__default__' applies to any rule not explicitly listed.
+# Only dlc_inference goes to the GPU partition.
+
+__default__:
+  partition: general
+  account: r01704
+  cpus: 2
+  mem: 8G
+  time: "01:00:00"
+  gpus: 0
+
+preprocess:
+  partition: general
+  account: r01704
+  cpus: 4
+  mem: 8G
+  time: "02:00:00"
+  gpus: 0
+
+resize:
+  partition: general
+  account: r01704
+  cpus: 4       # ffmpeg is CPU-bound
+  mem: 4G
+  time: "01:00:00"
+  gpus: 0
+
+dlc_inference:
+  partition: gpu
+  account: r01704
+  cpus: 4
+  mem: 16G
+  time: "04:00:00"
+  gpus: 1       # only rule that needs a GPU
+
+postprocess:
+  partition: general
+  account: r01704
+  cpus: 2
+  mem: 8G
+  time: "00:30:00"
+  gpus: 0

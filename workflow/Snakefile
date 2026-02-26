@@ -8,35 +8,48 @@ config["tenant_id"]     = os.getenv("TENANT_ID")
 config["client_id"]     = os.getenv("CLIENT_ID")
 config["client_secret"] = os.getenv("CLIENT_SECRET")
 
-# --- PATHS ---
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
 INPUT_DIR   = config.get("input_dir",   "../inputs")
 STAGING_DIR = config.get("staging_dir", "../staging")
 OUTPUT_DIR  = config.get("output_dir",  "../outputs")
+RESIZED_DIR = f"{OUTPUT_DIR}/trimmed_resized"
 
-# --- SHARED INGEST VARIABLES (used by preprocess.smk even when ingest is skipped) ---
+# ---------------------------------------------------------------------------
+# Batch / logging
+# ---------------------------------------------------------------------------
 BATCH_ID    = config.get("batch_id", "batch_001")
 LOG_DIR     = f"{STAGING_DIR}/_logs"
 MANIFEST    = f"{LOG_DIR}/{BATCH_ID}_manifest.csv"
 INGEST_FLAG = f"{LOG_DIR}/{BATCH_ID}.ingest.done"
 
-# --- FILE DISCOVERY ---
+# ---------------------------------------------------------------------------
+# Video discovery  (walk STAGING_DIR for .mp4 files)
+# ---------------------------------------------------------------------------
 raw_files = []
 if os.path.exists(STAGING_DIR):
     raw_files = [
         os.path.join(dirpath, f)
-        for dirpath, dirnames, files in os.walk(STAGING_DIR)
+        for dirpath, _, files in os.walk(STAGING_DIR)
         for f in files if f.lower().endswith(".mp4")
     ]
 
 PATH_MAP = {os.path.basename(f): f for f in raw_files}
 VIDEOS   = list(PATH_MAP.keys())
 
-# --- INCLUDE RULE FILES ---
+# ---------------------------------------------------------------------------
+# Rules
+# ---------------------------------------------------------------------------
 #include: "rules/ingest.smk"
 include: "rules/preprocess.smk"
+include: "rules/resize.smk"
 include: "rules/dlc_inference.smk"
+include: "rules/postprocess.smk"
 
-# --- FINAL TARGET ---
+# ---------------------------------------------------------------------------
+# Final target  — postprocessed CSV per video
+# ---------------------------------------------------------------------------
 rule all:
     input:
-        expand(OUTPUT_DIR + "/logs/{vid}_inference.log", vid=VIDEOS)
+        expand(OUTPUT_DIR + "/postprocessed/{vid}.csv", vid=VIDEOS)
