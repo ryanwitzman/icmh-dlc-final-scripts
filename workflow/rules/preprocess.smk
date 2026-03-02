@@ -10,6 +10,6 @@ rule trim_video:
     output:
         f"{OUTPUT_DIR}/trimmed_{{vid}}.mp4"
     log:
-        f"{OUTPUT_DIR}/logs/trim_{{vid}}.log"
+        f"{OUTPUT_DIR}/logs/{{vid}}_preprocess.log"
     script:
         "../../src/trim/trim_video.py"

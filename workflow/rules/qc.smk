@@ -4,6 +4,8 @@ rule quality_control:
     output:
         plots = report(directory(OUTPUT_DIR + "/qc/{vid}/"), category="QC Plots"),
         traj  = OUTPUT_DIR + "/qc/{vid}/{vid}_trajectory.png"
+    log:
+        f"{OUTPUT_DIR}/logs/{{vid}}_qc.log"
     params:
         summary_csv = OUTPUT_DIR + "/qc_summary.csv",
         vid_name = "{vid}"
