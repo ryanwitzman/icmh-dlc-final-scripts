@@ -53,9 +53,7 @@ include: "rules/qc.smk"
 # ---------------------------------------------------------------------------
 rule all:
     input:
-        # 1. Postprocessed data
         expand(OUTPUT_DIR + "/postprocessed/{vid}.csv", vid=VIDEOS),
-        # 2. Individual QC plots per video
-        expand(OUTPUT_DIR + "/qc/{vid}/{vid}_trajectory.png", vid=VIDEOS),
-        # 3. The aggregate batch summary
+        # Point to the summary file; Snakemake will now trace it 
+        # back to 'aggregate_qc' which requires all 'quality_control' jobs
         OUTPUT_DIR + "/qc_summary.csv"
