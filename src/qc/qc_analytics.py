@@ -9,8 +9,11 @@ def run_qc(input_csv, output_folder, video_name):
     df = pd.read_csv(input_csv)
     os.makedirs(output_folder, exist_ok=True)
 
+    # Define the primary body part to use for tracking x/y coordinates
+    target_x = "mouse_center_x"
+    target_y = "mouse_center_y"
+
     # 1. Keypoint Confidence Summary
-    # Assuming columns ending in '_likelihood' or '_prob' based on DLC/inference output
     likelihood_cols = [
         c for c in df.columns if "likelihood" in c.lower() or "prob" in c.lower()
     ]
@@ -25,9 +28,8 @@ def run_qc(input_csv, output_folder, video_name):
     }
 
     # 2. Trajectory Plot (x-y path)
-    # Assuming 'x' and 'y' for a primary bodypart like 'center' or 'snout'
     plt.figure(figsize=(8, 6))
-    plt.plot(df["x"], df["y"], color="blue", alpha=0.5, lw=1)
+    plt.plot(df[target_x], df[target_y], color="blue", alpha=0.5, lw=1)
     plt.title(f"Trajectory: {video_name}")
     plt.xlabel("X (arena coords)")
     plt.ylabel("Y (arena coords)")
@@ -37,7 +39,7 @@ def run_qc(input_csv, output_folder, video_name):
 
     # 3. Heatmap Occupancy
     plt.figure(figsize=(8, 6))
-    plt.hist2d(df["x"].dropna(), df["y"].dropna(), bins=50, cmap="hot")
+    plt.hist2d(df[target_x].dropna(), df[target_y].dropna(), bins=50, cmap="hot")
     plt.colorbar(label="Frame Count")
     plt.title(f"Heatmap: {video_name}")
     plt.savefig(os.path.join(output_folder, f"{video_name}_heatmap.png"))
@@ -45,8 +47,8 @@ def run_qc(input_csv, output_folder, video_name):
 
     # 4. Simple Speed Over Time
     # Speed = sqrt(dx^2 + dy^2)
-    df["dx"] = df["x"].diff()
-    df["dy"] = df["y"].diff()
+    df["dx"] = df[target_x].diff()
+    df["dy"] = df[target_y].diff()
     df["speed"] = np.sqrt(df["dx"] ** 2 + df["dy"] ** 2)
 
     plt.figure(figsize=(10, 4))
