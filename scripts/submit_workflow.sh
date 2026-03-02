@@ -61,14 +61,14 @@ export -f _submit_job
 # =============================================================================
 snakemake \
   --cluster-config ../workflow/cluster.yaml \
-  --cluster "bash -c '_submit_job \
+  --cluster "_submit_job \
     {cluster.partition} \
     {cluster.account} \
     {cluster.cpus} \
     {cluster.mem} \
     {cluster.time} \
     {cluster.gpus} \
-    {jobscript}'" \
+    {jobscript}" \
   --jobs 10 \
   --use-conda \
   --conda-prefix /N/project/msk_dl/conda-envs \
