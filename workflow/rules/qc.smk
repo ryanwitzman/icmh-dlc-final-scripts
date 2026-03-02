@@ -4,23 +4,21 @@ rule quality_control:
     input:
         csv = OUTPUT_DIR + "/postprocessed/{vid}.csv"
     output:
-        # We track the trajectory plot as the "flag" that this video is done
         traj = OUTPUT_DIR + "/qc/{vid}/{vid}_trajectory.png"
     params:
         summary_csv = OUTPUT_DIR + "/qc_summary.csv",
         outdir = OUTPUT_DIR + "/qc/{vid}/",
         vid_name = "{vid}"
     log:
-        "logs/qc/{vid}.log" # Added explicit logging per video
+        "logs/qc/{vid}.log"
     shell:
-        """
-        python scripts/qc_analytics.py \
-            --input {input.csv} \
-            --outdir {params.outdir} \
-            --vid {params.vid_name} \
-            --summary {params.summary_csv} > {log} 2>&1
-        """
-
+        # Using a single-line or properly escaped multi-line string
+        "python scripts/qc_analytics.py "
+        "--input {input.csv} "
+        "--outdir {params.outdir} "
+        "--vid {params.vid_name} "
+        "--summary {params.summary_csv} > {log} 2>&1"
+        
 # THIS IS THE MISSING LINK:
 rule aggregate_qc:
     input:
