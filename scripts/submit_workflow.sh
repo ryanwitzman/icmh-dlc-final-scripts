@@ -24,51 +24,47 @@ cd /N/project/msk_dl/icmh-dlc-final-scripts/workflow
 mkdir -p logs
 
 # =============================================================================
-# 1. Job submission function  (replaces cluster_submit.sh)
-# Called once per rule job by Snakemake via --cluster.
-# Args: partition account cpus mem time gpus jobscript
+# 1. Create a dedicated SLURM submit wrapper
+# This avoids the "jobscript" NameError and export -f subshell scoping issues.
+# Snakemake automatically appends the job script path as the final argument ($7).
 # =============================================================================
-_submit_job() {
-  local PARTITION=$1
-  local ACCOUNT=$2
-  local CPUS=$3
-  local MEM=$4
-  local TIME=$5
-  local GPUS=$6
-  local JOBSCRIPT=$7
+cat << 'EOF' > .slurm_submit_wrapper.sh
+#!/bin/bash
+PARTITION=$1
+ACCOUNT=$2
+CPUS=$3
+MEM=$4
+TIME=$5
+GPUS=$6
+JOBSCRIPT=$7
 
-  SBATCH_ARGS=(
-    --partition="$PARTITION"
-    --account="$ACCOUNT"
-    --cpus-per-task="$CPUS"
-    --mem="$MEM"
-    --time="$TIME"
-    --output="logs/slurm_%j.out"
-    --error="logs/slurm_%j.err"
-    --export=ALL
-  )
+SBATCH_ARGS=(
+  --partition="$PARTITION"
+  --account="$ACCOUNT"
+  --cpus-per-task="$CPUS"
+  --mem="$MEM"
+  --time="$TIME"
+  --output="logs/slurm_%j.out"
+  --error="logs/slurm_%j.err"
+  --export=ALL
+)
 
-  if [ "$GPUS" != "0" ]; then
-    SBATCH_ARGS+=(--gpus-per-node="$GPUS")
-  fi
+if [ "$GPUS" != "0" ]; then
+  SBATCH_ARGS+=(--gpus-per-node="$GPUS")
+fi
 
-  sbatch "${SBATCH_ARGS[@]}" "$JOBSCRIPT"
-}
-export -f _submit_job
+sbatch "${SBATCH_ARGS[@]}" "$JOBSCRIPT"
+EOF
+
+chmod +x .slurm_submit_wrapper.sh
 
 # =============================================================================
 # 2. Run Snakemake
 # =============================================================================
+# Notice {jobscript} is intentionally omitted here.
 snakemake \
   --cluster-config ../workflow/cluster.yaml \
-  --cluster "_submit_job \
-    {cluster.partition} \
-    {cluster.account} \
-    {cluster.cpus} \
-    {cluster.mem} \
-    {cluster.time} \
-    {cluster.gpus} \
-    {jobscript}" \
+  --cluster "./.slurm_submit_wrapper.sh {cluster.partition} {cluster.account} {cluster.cpus} {cluster.mem} {cluster.time} {cluster.gpus}" \
   --jobs 10 \
   --use-conda \
   --conda-prefix /N/project/msk_dl/conda-envs \
