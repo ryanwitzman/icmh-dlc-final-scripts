@@ -13,13 +13,12 @@ rule quality_control:
         "logs/qc/{vid}.log"
     shell:
         """
-        python scripts/qc_analytics.py \
+        python src/qc/qc_analytics.py \
             --input {input.csv} \
             --outdir {params.outdir} \
             --vid {params.vid_name} \
             --summary {params.summary_csv} > {log} 2>&1
         """
-# THIS IS THE MISSING LINK:
 rule aggregate_qc:
     input:
         expand(OUTPUT_DIR + "/qc/{vid}/{vid}_trajectory.png", vid=VIDEOS)
