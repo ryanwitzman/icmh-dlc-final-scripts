@@ -46,10 +46,16 @@ include: "rules/preprocess.smk"
 include: "rules/resize.smk"
 include: "rules/dlc_inference.smk"
 include: "rules/postprocess.smk"
+include: "rules/qc.smk"
 
 # ---------------------------------------------------------------------------
 # Final target  — postprocessed CSV per video
 # ---------------------------------------------------------------------------
 rule all:
     input:
-        expand(OUTPUT_DIR + "/postprocessed/{vid}.csv", vid=VIDEOS)
+        # 1. Postprocessed data
+        expand(OUTPUT_DIR + "/postprocessed/{vid}.csv", vid=VIDEOS),
+        # 2. Individual QC plots per video
+        expand(OUTPUT_DIR + "/qc/{vid}/{vid}_trajectory.png", vid=VIDEOS),
+        # 3. The aggregate batch summary
+        OUTPUT_DIR + "/qc_summary.csv"
