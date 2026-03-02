@@ -12,13 +12,13 @@ rule quality_control:
     log:
         "logs/qc/{vid}.log"
     shell:
-        # Using a single-line or properly escaped multi-line string
-        "python scripts/qc_analytics.py "
-        "--input {input.csv} "
-        "--outdir {params.outdir} "
-        "--vid {params.vid_name} "
-        "--summary {params.summary_csv} > {log} 2>&1"
-        
+        """
+        python scripts/qc_analytics.py \
+            --input {input.csv} \
+            --outdir {params.outdir} \
+            --vid {params.vid_name} \
+            --summary {params.summary_csv} > {log} 2>&1
+        """
 # THIS IS THE MISSING LINK:
 rule aggregate_qc:
     input:
