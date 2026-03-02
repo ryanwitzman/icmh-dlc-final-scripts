@@ -10,7 +10,7 @@ rule quality_control:
         outdir = OUTPUT_DIR + "/qc/{vid}/",
         vid_name = "{vid}"
     log:
-        "logs/qc/{vid}.log"
+        f"{OUTPUT_DIR}/logs/{{vid}}_qc.log"
     shell:
         """
         python src/qc/qc_analytics.py \
