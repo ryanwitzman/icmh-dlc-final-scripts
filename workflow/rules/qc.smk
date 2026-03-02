@@ -13,7 +13,7 @@ rule quality_control:
         f"{OUTPUT_DIR}/logs/{{vid}}_qc.log"
     shell:
         """
-        python src/qc/qc_analytics.py \
+        python ../src/qc/qc_analytics.py \
             --input {input.csv} \
             --outdir {params.outdir} \
             --vid {params.vid_name} \
