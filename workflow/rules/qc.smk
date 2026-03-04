@@ -3,7 +3,8 @@ import os
 
 rule quality_control:
     input:
-        csv = OUTPUT_DIR + "/postprocessed/{vid}.csv"
+        csv = OUTPUT_DIR + "/postprocessed/{vid}.csv",
+        script = "../src/qc/qc_analytics.py"
     output:
         traj    = OUTPUT_DIR + "/qc/{vid}/{vid}_trajectory.png",
         heatmap = OUTPUT_DIR + "/qc/{vid}/{vid}_heatmap.png",
@@ -16,7 +17,7 @@ rule quality_control:
         f"{OUTPUT_DIR}/logs/{{vid}}_qc.log"
     shell:
         """
-        python ../src/qc/qc_analytics.py \
+        python {input.script} \
             --input {input.csv} \
             --outdir {params.outdir} \
             --vid {params.vid_name} \
