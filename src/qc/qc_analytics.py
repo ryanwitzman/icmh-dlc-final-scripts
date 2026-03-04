@@ -20,9 +20,14 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
     if likelihood_cols:
         conf_data = df[likelihood_cols].values.flatten()
         threshold = 0.6
-        mean_conf = np.mean(conf_data)
-        median_conf = np.median(conf_data)
-        frac_below_thresh = np.mean(conf_data < threshold)
+
+        # Use nan-safe functions to safely ignore missing data
+        mean_conf = np.nanmean(conf_data)
+        median_conf = np.nanmedian(conf_data)
+
+        # Fill NaNs with 0.0 before checking threshold (missing point = 0 confidence)
+        filled_conf = np.nan_to_num(conf_data, nan=0.0)
+        frac_below_thresh = np.mean(filled_conf < threshold)
     else:
         mean_conf, median_conf, frac_below_thresh = np.nan, np.nan, np.nan
 
@@ -57,7 +62,7 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
         plt.savefig(os.path.join(output_folder, f"{video_name}_heatmap.png"))
         plt.close()
 
-        # 4. Speed Over Time.
+        # 4. Speed Over Time
         df["dx"] = df[target_x].diff()
         df["dy"] = df[target_y].diff()
         df["speed"] = np.sqrt(df["dx"] ** 2 + df["dy"] ** 2)
