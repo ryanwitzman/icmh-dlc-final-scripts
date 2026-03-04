@@ -9,7 +9,6 @@ def run_qc(input_csv, output_folder, video_name):
     df = pd.read_csv(input_csv)
     os.makedirs(output_folder, exist_ok=True)
 
-    # Define the primary body part to use for tracking x/y coordinates
     target_x = "mouse_center_x"
     target_y = "mouse_center_y"
 
@@ -27,13 +26,13 @@ def run_qc(input_csv, output_folder, video_name):
         "frac_below_thresh": np.mean(conf_data < threshold),
     }
 
-    # 2. Trajectory Plot (x-y path)
+    # 2. Trajectory Plot
     plt.figure(figsize=(8, 6))
     plt.plot(df[target_x], df[target_y], color="blue", alpha=0.5, lw=1)
     plt.title(f"Trajectory: {video_name}")
     plt.xlabel("X (arena coords)")
     plt.ylabel("Y (arena coords)")
-    plt.gca().invert_yaxis()  # Often necessary for video coords
+    plt.gca().invert_yaxis()
     plt.savefig(os.path.join(output_folder, f"{video_name}_trajectory.png"))
     plt.close()
 
@@ -45,8 +44,7 @@ def run_qc(input_csv, output_folder, video_name):
     plt.savefig(os.path.join(output_folder, f"{video_name}_heatmap.png"))
     plt.close()
 
-    # 4. Simple Speed Over Time
-    # Speed = sqrt(dx^2 + dy^2)
+    # 4. Speed Over Time
     df["dx"] = df[target_x].diff()
     df["dy"] = df[target_y].diff()
     df["speed"] = np.sqrt(df["dx"] ** 2 + df["dy"] ** 2)
@@ -61,6 +59,13 @@ def run_qc(input_csv, output_folder, video_name):
     return stats
 
 
+def needs_header(path):
+    """Return True if the file doesn't exist or is empty/header-only."""
+    if not os.path.exists(path):
+        return True
+    return os.path.getsize(path) == 0
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True)
@@ -71,7 +76,7 @@ if __name__ == "__main__":
 
     qc_stats = run_qc(args.input, args.outdir, args.vid)
 
-    # Append to summary table
     summary_df = pd.DataFrame([qc_stats])
-    header = not os.path.exists(args.summary)
-    summary_df.to_csv(args.summary, mode="a", index=False, header=header)
+    write_header = needs_header(args.summary)
+    summary_df.to_csv(args.summary, mode="a", index=False, header=write_header)
+    print(f"[QC] Appended stats for '{args.vid}' → {args.summary}")
