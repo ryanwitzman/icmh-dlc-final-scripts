@@ -1,6 +1,6 @@
 rule postprocess:
     input:
-        h5=f"{OUTPUT_DIR}/dlc_results/{{vid}}_superanimal.h5"
+        h5=f"{OUTPUT_DIR}/dlc_results/{{vid}}_superanimal.h5",
         script = "../src/postprocess/h5_to_csv.py"
     output:
         csv=f"{OUTPUT_DIR}/postprocessed/{{vid}}.csv"
