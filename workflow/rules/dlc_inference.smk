@@ -4,9 +4,7 @@ rule dlc_inference:
         script = "../src/dlc/run_dlc_inference.py"
     output:
         h5=f"{OUTPUT_DIR}/dlc_results/{{vid}}_superanimal.h5"
-    # Use 'log' instead of 'output' for log files
-    log:
-        f"{OUTPUT_DIR}/logs/{{vid}}_inference.log"
+        log_file=f"{OUTPUT_DIR}/logs/{{vid}}_inference.log"
     params:
         out_dir=f"{OUTPUT_DIR}/dlc_results",
         model_arg=f"--superanimal {config.get('superanimal_model', 'superanimal_topviewmouse')}"
