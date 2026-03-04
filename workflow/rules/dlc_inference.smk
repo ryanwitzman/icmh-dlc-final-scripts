@@ -3,7 +3,7 @@ rule dlc_inference:
         video=f"{RESIZED_DIR}/trimmed_{{vid}}.mp4",
         script = "../src/dlc/run_dlc_inference.py"
     output:
-        h5=f"{OUTPUT_DIR}/dlc_results/{{vid}}_superanimal.h5"
+        h5=f"{OUTPUT_DIR}/dlc_results/{{vid}}_superanimal.h5",
         log_file=f"{OUTPUT_DIR}/logs/{{vid}}_inference.log"
     params:
         out_dir=f"{OUTPUT_DIR}/dlc_results",
