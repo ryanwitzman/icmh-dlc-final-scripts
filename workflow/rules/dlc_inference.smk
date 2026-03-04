@@ -1,6 +1,7 @@
 rule dlc_inference:
     input:
         video=f"{RESIZED_DIR}/trimmed_{{vid}}.mp4"
+        script = "../src/dlc/run_dlc_inference.py"
     output:
         h5=f"{OUTPUT_DIR}/dlc_results/{{vid}}_superanimal.h5"
     # Use 'log' instead of 'output' for log files
