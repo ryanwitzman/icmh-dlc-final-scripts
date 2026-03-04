@@ -57,7 +57,7 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
         plt.savefig(os.path.join(output_folder, f"{video_name}_heatmap.png"))
         plt.close()
 
-        # 4. Speed Over Time
+        # 4. Speed Over Time.
         df["dx"] = df[target_x].diff()
         df["dy"] = df[target_y].diff()
         df["speed"] = np.sqrt(df["dx"] ** 2 + df["dy"] ** 2)
