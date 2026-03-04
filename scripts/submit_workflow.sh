@@ -62,6 +62,9 @@ chmod +x .slurm_submit_wrapper.sh
 # 2. Run Snakemake
 # =============================================================================
 # Notice {jobscript} is intentionally omitted here.
+# =============================================================================
+# 2. Run Snakemake
+# =============================================================================
 snakemake \
   --cluster-config ../workflow/cluster.yaml \
   --cluster "./.slurm_submit_wrapper.sh {cluster.partition} {cluster.account} {cluster.cpus} {cluster.mem} {cluster.time} {cluster.gpus}" \
@@ -70,4 +73,5 @@ snakemake \
   --conda-prefix /N/project/msk_dl/conda-envs \
   --latency-wait 120 \
   --rerun-incomplete \
+  --rerun-triggers mtime \
   --printshellcmds
