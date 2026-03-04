@@ -1,13 +1,16 @@
-# rules/qc.smk
+import pandas as pd
+import os
 
 rule quality_control:
     input:
         csv = OUTPUT_DIR + "/postprocessed/{vid}.csv"
     output:
-        traj = OUTPUT_DIR + "/qc/{vid}/{vid}_trajectory.png"
+        traj    = OUTPUT_DIR + "/qc/{vid}/{vid}_trajectory.png",
+        heatmap = OUTPUT_DIR + "/qc/{vid}/{vid}_heatmap.png",
+        speed   = OUTPUT_DIR + "/qc/{vid}/{vid}_speed.png",
+        stats   = OUTPUT_DIR + "/qc/{vid}/{vid}_stats.csv"
     params:
-        summary_csv = OUTPUT_DIR + "/qc_summary.csv",
-        outdir = OUTPUT_DIR + "/qc/{vid}/",
+        outdir   = OUTPUT_DIR + "/qc/{vid}/",
         vid_name = "{vid}"
     log:
         f"{OUTPUT_DIR}/logs/{{vid}}_qc.log"
@@ -17,16 +20,22 @@ rule quality_control:
             --input {input.csv} \
             --outdir {params.outdir} \
             --vid {params.vid_name} \
-            --summary {params.summary_csv} > {log} 2>&1
+            --stats_out {output.stats} > {log} 2>&1
         """
+
 rule aggregate_qc:
     input:
-        expand(OUTPUT_DIR + "/qc/{vid}/{vid}_trajectory.png", vid=VIDEOS)
+        stats = expand(OUTPUT_DIR + "/qc/{vid}/{vid}_stats.csv", vid=VIDEOS)
     output:
-        OUTPUT_DIR + "/qc_summary.csv"
+        summary = OUTPUT_DIR + "/qc_summary.csv"
     run:
-        # This ensures the file exists even if the expand finishes 
-        # but the script somehow failed to append
-        if not os.path.exists(output[0]):
-            with open(output[0], 'w') as f:
+        # Read all individual stat files and concatenate them
+        df_list = [pd.read_csv(f) for f in input.stats]
+        
+        if df_list:
+            final_df = pd.concat(df_list, ignore_index=True)
+            final_df.to_csv(output.summary, index=False)
+        else:
+            # Fallback if the batch is completely empty
+            with open(output.summary, 'w') as f:
                 f.write("video,mean_conf,median_conf,frac_below_thresh\n")
