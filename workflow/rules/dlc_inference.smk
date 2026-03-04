@@ -1,6 +1,6 @@
 rule dlc_inference:
     input:
-        video=f"{OUTPUT_DIR}/trimmed_{{vid}}.mp4"
+        video=f"{RESIZED_DIR}/trimmed_{{vid}}.mp4"
     output:
         h5=f"{OUTPUT_DIR}/dlc_results/{{vid}}_superanimal.h5",
         log_file=f"{OUTPUT_DIR}/logs/{{vid}}_inference.log"
