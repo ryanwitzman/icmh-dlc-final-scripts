@@ -1,17 +1,18 @@
 rule dlc_inference:
     input:
         video=f"{RESIZED_DIR}/trimmed_{{vid}}.mp4",
-        script = "../src/dlc/run_dlc_inference.py"
+        script="../src/dlc/run_dlc_inference.py"
     output:
-        h5=f"{OUTPUT_DIR}/dlc_results/{{vid}}_superanimal.h5",
-        log_file=f"{OUTPUT_DIR}/logs/{{vid}}_inference.log"
+        h5=f"{OUTPUT_DIR}/dlc_results/{{vid}}_superanimal.h5"
+    log:  # Move the log definition here!
+        f"{OUTPUT_DIR}/logs/{{vid}}_inference.log"
     params:
         out_dir=f"{OUTPUT_DIR}/dlc_results",
         model_arg=f"--superanimal {config.get('superanimal_model', 'superanimal_topviewmouse')}"
     shell:
         """
-        # -u forces unbuffered output; 2>&1 redirects errors to the log file too
-        python -u ../src/dlc/run_dlc_inference.py \
+        # I also swapped the hardcoded script path to use {input.script} for cleaner code
+        python -u {input.script} \
             --videos {input.video} \
             --out_dir {params.out_dir} \
             --out_h5 {output.h5} \
