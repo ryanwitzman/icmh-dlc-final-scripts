@@ -10,7 +10,7 @@ Trims the first 60 seconds off so we skip the setup time, and keeps 15 seconds o
 
 ## 3. Resize
 Rule: `resize.smk`
-Scales the video down by half (`iw/2:ih/2`), encodes with `libx264`, and forces a constant frame rate of 30fps so audio/video sync doesn't break. You need FFmpeg 7.0.2 for this.
+Scales the video down by half (`iw/2:ih/2`), encodes with `libx264`, and forces a constant frame rate of 30fps so audio/video sync doesn't break. You need FFmpeg 6.1 for this.
 
 ## 4. DLC Inference
 Rule: `dlc_inference.smk`

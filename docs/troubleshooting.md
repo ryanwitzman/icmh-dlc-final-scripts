@@ -27,7 +27,7 @@ If inference is taking hours, it might be running on a CPU node.
 - Run `squeue -u <username>` to see if it actually got a GPU node.
 
 ## FFmpeg Errors
-The resize rule needs FFmpeg 7.0.2. Older versions might break the command.
+The resize rule needs FFmpeg 6.1. Older versions might break the command.
 **Fix:** Check your version with `ffmpeg -version`. If it's wrong, reinstall FFmpeg or recreate the conda environment.
 
 ## Output is all NaN
