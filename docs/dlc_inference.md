@@ -21,7 +21,7 @@ conda activate icmh-dlc-310
 ### DLC Project Path Conventions
 If you're swapping out SuperAnimal for a custom trained model, you'll need to change that in `configs/config.yaml`.
 
-Because DLC normally writes outputs directly into whatever directory the video lives in, our wrapper script  grabs all the newly-made `.h5`, `.csv`, and `.pickle` files and relocates them to `outputs/dlc_results/`.
+Because DLC normally writes outputs directly into whatever directory the video lives in, our wrapper script grabs all the newly-made `.h5`, `.csv`, and `.pickle` files and relocates them to `outputs/dlc_results/`.
 
 ### Output Logs
 The logging is cleanly organized per batch/video. If you have `outputs/trimmed_resized/trimmed_video1.mp4`, its corresponding runtime log will be waiting at `outputs/logs/video1_inference.log`. If inference fails or takes forever, checking that file will tell you if Snakemake couldn't find a GPU or if DLC messed up on something internally.
