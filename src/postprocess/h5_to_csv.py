@@ -19,7 +19,9 @@ Usage:
         --h5 ../outputs/dlc_results/VIDEO_superanimal.h5 \
         --out_csv ../outputs/postprocessed/VIDEO.csv \
         --log_file ../outputs/logs/VIDEO_postprocess.log \
-        [--pcutoff 0.6]
+        [--pcutoff 0.6] \
+        [--expected_bodyparts nose ear_left ear_right] \
+        [--expected_frames 1800]
 """
 
 import argparse
@@ -55,6 +57,137 @@ def setup_logger(log_file: str) -> logging.Logger:
     logger.addHandler(sh)
 
     return logger
+
+
+# ---------------------------------------------------------------------------
+# Validation
+# ---------------------------------------------------------------------------
+
+
+def validate_h5(
+    df: pd.DataFrame,
+    logger: logging.Logger,
+    *,
+    expected_bodyparts: list[str] | None = None,
+    expected_frames: int | None = None,
+    pcutoff: float = 0.6,
+) -> None:
+    """
+    Run pre-conversion checks on the raw MultiIndex DataFrame.
+    Raises ValueError on the first failed check; all errors are logged
+    before raising so the log captures the full picture.
+
+    Checks
+    ------
+    1. Expected bodyparts present (if --expected_bodyparts supplied).
+    2. Frame count matches video (if --expected_frames supplied).
+    3. Likelihood values are in [0.0, 1.0].
+    4. No bodypart is all-NaN after applying pcutoff.
+    """
+    errors: list[str] = []
+    nlevels = df.columns.nlevels
+
+    # Resolve the bodypart level index (3-level → 1, 4-level → 2)
+    bp_level = 1 if nlevels == 3 else 2
+    present_bodyparts = df.columns.get_level_values(bp_level).unique().tolist()
+
+    # ------------------------------------------------------------------
+    # 1. Expected bodyparts
+    # ------------------------------------------------------------------
+    if expected_bodyparts:
+        missing = sorted(set(expected_bodyparts) - set(present_bodyparts))
+        if missing:
+            errors.append(
+                f"Missing expected bodypart(s): {missing}. "
+                f"Present: {present_bodyparts}"
+            )
+        else:
+            logger.info(
+                f"[validate] Bodyparts OK — all {len(expected_bodyparts)} "
+                f"expected bodypart(s) present."
+            )
+
+    # ------------------------------------------------------------------
+    # 2. Frame count
+    # ------------------------------------------------------------------
+    if expected_frames is not None:
+        actual = len(df)
+        if actual != expected_frames:
+            errors.append(
+                f"Frame count mismatch: H5 has {actual} frame(s), "
+                f"expected {expected_frames}."
+            )
+        else:
+            logger.info(f"[validate] Frame count OK — {actual} frame(s).")
+
+    # ------------------------------------------------------------------
+    # 3. Likelihood values in [0, 1]
+    # ------------------------------------------------------------------
+    coord_level = nlevels - 1
+    like_mask = df.columns.get_level_values(coord_level) == "likelihood"
+    like_cols = df.columns[like_mask]
+
+    if len(like_cols) == 0:
+        errors.append("No likelihood columns found — is this a valid DLC H5?")
+    else:
+        like_df = df[like_cols].astype(float)
+        out_of_range = (like_df < 0.0) | (like_df > 1.0)
+        bad_cols = [str(c) for c in like_cols[out_of_range.any(axis=0)]]
+        if bad_cols:
+            # Report worst offenders (up to 5) to keep the message readable
+            sample = bad_cols[:5]
+            extra = f" (and {len(bad_cols) - 5} more)" if len(bad_cols) > 5 else ""
+            errors.append(
+                f"Likelihood values outside [0, 1] in column(s): " f"{sample}{extra}."
+            )
+        else:
+            logger.info(
+                f"[validate] Likelihood range OK — all {len(like_cols)} "
+                f"likelihood column(s) in [0, 1]."
+            )
+
+    # ------------------------------------------------------------------
+    # 4. No all-NaN bodyparts after pcutoff
+    # ------------------------------------------------------------------
+    all_nan_bps: list[str] = []
+    for bp in present_bodyparts:
+        try:
+            # Navigate to the likelihood series regardless of nlevels
+            if nlevels == 3:
+                like_series = df.xs("likelihood", level=2, axis=1)[bp]
+            else:
+                # 4-level: xs on the coord level (3), then look up bodypart
+                like_series = df.xs("likelihood", level=3, axis=1)[bp]
+        except KeyError:
+            continue  # No likelihood for this bodypart; caught elsewhere
+
+        passing = (like_series.astype(float) >= pcutoff).sum()
+        if passing == 0:
+            all_nan_bps.append(bp)
+
+    if all_nan_bps:
+        errors.append(
+            f"Bodypart(s) with zero frames above pcutoff={pcutoff}: "
+            f"{sorted(all_nan_bps)}. Output would be entirely NaN."
+        )
+    else:
+        logger.info(
+            f"[validate] pcutoff OK — all bodypart(s) have at least one "
+            f"frame above pcutoff={pcutoff}."
+        )
+
+    # ------------------------------------------------------------------
+    # Fail hard if any errors were found
+    # ------------------------------------------------------------------
+    if errors:
+        logger.error(f"[validate] Validation FAILED with {len(errors)} error(s):")
+        for i, msg in enumerate(errors, 1):
+            logger.error(f"  [{i}] {msg}")
+        raise ValueError(
+            f"H5 validation failed ({len(errors)} error(s)); see log for details."
+        )
+
+    logger.info("[validate] All checks passed.")
 
 
 # ---------------------------------------------------------------------------
@@ -204,6 +337,26 @@ def main():
         default=0.6,
         help="Likelihood threshold: x/y set to NaN below this value.",
     )
+    parser.add_argument(
+        "--expected_bodyparts",
+        nargs="+",
+        default=None,
+        metavar="BP",
+        help=(
+            "Space-separated list of bodypart names that must be present in the H5. "
+            "Omit to skip this check."
+        ),
+    )
+    parser.add_argument(
+        "--expected_frames",
+        type=int,
+        default=None,
+        metavar="N",
+        help=(
+            "Exact number of frames the H5 must contain (e.g. from your video). "
+            "Omit to skip this check."
+        ),
+    )
     args = parser.parse_args()
 
     logger = setup_logger(args.log_file)
@@ -219,10 +372,23 @@ def main():
     logger.info(f"Input H5  : {h5_path}")
     logger.info(f"Output CSV: {csv_path}")
     logger.info(f"p-cutoff  : {args.pcutoff}")
+    if args.expected_bodyparts:
+        logger.info(f"Expected bodyparts: {args.expected_bodyparts}")
+    if args.expected_frames is not None:
+        logger.info(f"Expected frames: {args.expected_frames}")
     logger.info("=" * 60)
 
     try:
         df_raw = load_h5(h5_path, logger)
+
+        validate_h5(
+            df_raw,
+            logger,
+            expected_bodyparts=args.expected_bodyparts,
+            expected_frames=args.expected_frames,
+            pcutoff=args.pcutoff,
+        )
+
         df_out = flatten(df_raw, args.pcutoff, logger)
 
         csv_path.parent.mkdir(parents=True, exist_ok=True)
