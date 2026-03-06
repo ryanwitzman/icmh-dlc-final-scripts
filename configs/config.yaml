@@ -12,8 +12,7 @@ sharepoint_url: "https://indiana.sharepoint.com/sites/msteams_9c5cec-KacenaLabAl
 remote_path: "Shared Documents/Kacena Lab All Research/Behavior Videos/Behavior Videos/RM1 Study 2023"
 
 # DLC Documentation & Configuration
-dlc_project_config: "/path/to/your/DLC_Project/config.yaml"
-dlc_version: "2.3.5"
+dlc_version: "2.3.11"
 dlc_install_method: "conda" # or "apptainer" / "docker"
 use_gpu: true
 superanimal_model: superanimal_topviewmouse
