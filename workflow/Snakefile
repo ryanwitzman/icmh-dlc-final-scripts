@@ -8,25 +8,19 @@ config["tenant_id"]     = os.getenv("TENANT_ID")
 config["client_id"]     = os.getenv("CLIENT_ID")
 config["client_secret"] = os.getenv("CLIENT_SECRET")
 
-# ---------------------------------------------------------------------------
-# Paths
-# ---------------------------------------------------------------------------
+
 INPUT_DIR   = config.get("input_dir",   "../inputs")
 STAGING_DIR = config.get("staging_dir", "../staging")
 OUTPUT_DIR  = config.get("output_dir",  "../outputs")
 RESIZED_DIR = f"{OUTPUT_DIR}/trimmed_resized"
 
-# ---------------------------------------------------------------------------
-# Batch / logging
-# ---------------------------------------------------------------------------
+
 BATCH_ID    = config.get("batch_id", "batch_001")
 LOG_DIR     = f"{STAGING_DIR}/_logs"
 MANIFEST    = f"{LOG_DIR}/{BATCH_ID}_manifest.csv"
 INGEST_FLAG = f"{LOG_DIR}/{BATCH_ID}.ingest.done"
 
-# ---------------------------------------------------------------------------
-# Video discovery  (walk STAGING_DIR for .mp4 files)
-# ---------------------------------------------------------------------------
+
 raw_files = []
 if os.path.exists(STAGING_DIR):
     raw_files = [
@@ -38,9 +32,7 @@ if os.path.exists(STAGING_DIR):
 PATH_MAP = {os.path.basename(f): f for f in raw_files}
 VIDEOS   = list(PATH_MAP.keys())
 
-# ---------------------------------------------------------------------------
-# Rules
-# ---------------------------------------------------------------------------
+
 #include: "rules/ingest.smk"
 include: "rules/preprocess.smk"
 include: "rules/resize.smk"
@@ -48,12 +40,9 @@ include: "rules/dlc_inference.smk"
 include: "rules/postprocess.smk"
 include: "rules/qc.smk"
 
-# ---------------------------------------------------------------------------
-# Final target  — postprocessed CSV per video
-# ---------------------------------------------------------------------------
+
 rule all:
     input:
         expand(OUTPUT_DIR + "/postprocessed/{vid}.csv", vid=VIDEOS),
-        # Point to the summary file; Snakemake will now trace it 
-        # back to 'aggregate_qc' which requires all 'quality_control' jobs
+
         OUTPUT_DIR + "/qc_summary.csv"

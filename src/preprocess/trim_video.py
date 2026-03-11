@@ -20,7 +20,7 @@ except NameError:
         },
     )
 
-# --- Config ---
+
 input_path = snakemake.input[0]
 output_path = snakemake.output[0]
 trim_start = snakemake.config["trim_start_seconds"]
@@ -48,13 +48,6 @@ def build_ffmpeg_cmd(input_path: str, output_path: str, gpu: bool) -> list[str]:
     duration_str = str(duration)
 
     if gpu:
-        # Decode on GPU, encode on GPU via NVENC
-        # -hwaccel cuda        → decode frames on the GPU
-        # -hwaccel_output_format cuda → keep frames in GPU memory (avoids CPU round-trip)
-        # h264_nvenc           → NVIDIA hardware H.264 encoder
-        # -preset p4           → NVENC quality preset (p1 fastest → p7 best quality)
-        # -rc vbr              → variable bitrate mode (better quality than cbr for clips)
-        # -cq 23               → constant quality target (lower = better, ~18-28 is typical)
         video_input_args = ["-hwaccel", "cuda", "-hwaccel_output_format", "cuda"]
         video_encode_args = [
             "-c:v",
@@ -73,20 +66,20 @@ def build_ffmpeg_cmd(input_path: str, output_path: str, gpu: bool) -> list[str]:
     vsync_args = ["-vsync", "cfr"] if policy == "CFR" else []
 
     cmd = (
-        [ffmpeg_exe, "-y"]  # -y = overwrite output without asking
+        [ffmpeg_exe, "-y"]
         + video_input_args
         + [
             "-ss",
-            start_str,  # seek BEFORE -i for fast seek
+            start_str,
             "-i",
             input_path,
             "-t",
             duration_str,
         ]
         + video_encode_args
-        + ["-r", str(fps)]  # enforce output frame rate
+        + ["-r", str(fps)]
         + vsync_args
-        + ["-c:a", "aac"]  # re-encode audio to AAC
+        + ["-c:a", "aac"]
         + [output_path]
     )
     return cmd

@@ -23,10 +23,7 @@ import sys
 import time
 from pathlib import Path
 
-# =============================================================================
-# Logging Configuration (Live Stream)
-# =============================================================================
-# Output goes directly to stdout so Snakemake's > {log} 2>&1 captures it live.
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -35,9 +32,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# =============================================================================
-# Environment & Hardware Documentation (Requirement 6.3)
-# =============================================================================
+
 def log_environment() -> None:
     """Log DLC version, install method, GPU allocation, and host info."""
     logger.info("Gathering environment and GPU allocation data...")
@@ -50,7 +45,7 @@ def log_environment() -> None:
     prefix = os.environ.get("CONDA_PREFIX", os.path.dirname(sys.executable))
     conda_meta = Path(prefix) / "conda-meta"
     
-    # Determine install method
+
     if list(conda_meta.glob("deeplabcut-*.json")):
         install_method = f"Conda (env: {prefix})"
     else:
@@ -63,7 +58,7 @@ def log_environment() -> None:
         except Exception:
             install_method = f"Unknown (env: {prefix})"
 
-    # Check GPU Allocation
+
     cuda_vis = os.environ.get("CUDA_VISIBLE_DEVICES", "NOT SET")
     gpu_lines = [f"CUDA_VISIBLE_DEVICES={cuda_vis}"]
     try:
@@ -95,9 +90,7 @@ def log_environment() -> None:
     logger.info("GPU Allocation:\n" + "\n".join(gpu_lines))
     logger.info("=" * 60)
 
-# =============================================================================
-# Output Collection (Requirement 6.3)
-# =============================================================================
+
 def collect_and_move_outputs(video_path: Path, out_dir: Path) -> None:
     """Move DLC SuperAnimal output files written beside the source video into out_dir."""
     stem = video_path.stem
@@ -123,9 +116,7 @@ def collect_and_move_outputs(video_path: Path, out_dir: Path) -> None:
     if not seen:
         logger.warning("No DLC output files found beside source video!")
 
-# =============================================================================
-# Main Inference Logic
-# =============================================================================
+
 def main():
     parser = argparse.ArgumentParser(
         description="Run DLC inference on a trimmed video.",
@@ -142,7 +133,7 @@ def main():
     parser.add_argument("--video_adapt", action="store_true", help="(SuperAnimal only) Enable unsupervised video adaptation.")
     args = parser.parse_args()
 
-    # Log environment and specs
+
     log_environment()
 
     out_dir = Path(args.out_dir)
@@ -156,7 +147,7 @@ def main():
         logger.error(f"FATAL: Video file(s) not found: {missing}")
         sys.exit(1)
 
-    # Log Project Path Conventions
+
     logger.info("=" * 60)
     logger.info("DLC PROJECT & PATH CONVENTIONS")
     logger.info("=" * 60)
@@ -166,14 +157,14 @@ def main():
     logger.info(f"Model/Config     : {args.config_path or args.superanimal}")
     logger.info("=" * 60)
 
-    # Import DLC (Can take a moment, log before and after)
+
     logger.info("Loading DeepLabCut module (this may take a moment)...")
     import deeplabcut
     logger.info("DeepLabCut successfully loaded.")
 
     t0 = time.time()
     try:
-        # 1. Standard Project Mode
+
         if args.config_path:
             logger.info("Starting inference in Standard Project Mode...")
             deeplabcut.analyze_videos(
@@ -184,7 +175,7 @@ def main():
                 destfolder=str(out_dir),
             )
             
-        # 2. SuperAnimal Mode
+
         else:
             logger.info(f"Starting inference using SuperAnimal ({args.superanimal}) | video_adapt={args.video_adapt}...")
             deeplabcut.video_inference_superanimal(
@@ -196,9 +187,7 @@ def main():
             for video_path in videos:
                 collect_and_move_outputs(video_path, out_dir)
 
-        # ------------------------------------------------------------------
-        # Fulfill Output H5 Requirement for Snakemake
-        # ------------------------------------------------------------------
+
         logger.info("Locating target H5 file for Snakemake pipeline...")
         h5_candidates = sorted(out_dir.glob(f"{videos[0].stem}*.h5"))
         
@@ -209,13 +198,13 @@ def main():
         shutil.copy2(src_h5, out_h5_path)
         logger.info(f"Linked H5 output : {src_h5.name} -> {out_h5_path.name}")
         
-        # Calculate Runtime
+
         elapsed = time.time() - t0
         logger.info(f"SUCCESS: Inference completed cleanly in {elapsed:.1f} seconds.")
 
     except Exception as e:
         logger.error(f"RUNTIME ERROR: Inference failed with error: {e}", exc_info=True)
-        sys.exit(1) # Explicitly fail so Snakemake marks the job as failed
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

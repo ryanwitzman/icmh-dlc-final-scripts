@@ -10,11 +10,9 @@ output_dir:      "../outputs"
 batch_id:        "batch_001"
 sharepoint_url: "https://indiana.sharepoint.com/sites/msteams_9c5cec-KacenaLabAllResearch"
 remote_path: "Shared Documents/Kacena Lab All Research/Behavior Videos/Behavior Videos/RM1 Study 2023"
-
-# DLC Documentation & Configuration
 dlc_version: "2.3.11"
-dlc_install_method: "conda" # or "apptainer" / "docker"
+dlc_install_method: "conda"
 use_gpu: true
 superanimal_model: superanimal_topviewmouse
 resize_scale: "iw/2:ih/2"
-pcutoff: 0.6   # x/y set to NaN when likelihood < this
+pcutoff: 0.6

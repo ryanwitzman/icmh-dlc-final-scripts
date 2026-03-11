@@ -4,14 +4,14 @@ rule dlc_inference:
         script="../src/dlc/run_dlc_inference.py"
     output:
         h5=f"{OUTPUT_DIR}/dlc_results/{{vid}}_superanimal.h5"
-    log:  # Move the log definition here!
+    log:
         f"{OUTPUT_DIR}/logs/{{vid}}_inference.log"
     params:
         out_dir=f"{OUTPUT_DIR}/dlc_results",
         model_arg=f"--superanimal {config.get('superanimal_model', 'superanimal_topviewmouse')}"
     shell:
         """
-        # I also swapped the hardcoded script path to use {input.script} for cleaner code
+
         python -u {input.script} \
             --videos {input.video} \
             --out_dir {params.out_dir} \

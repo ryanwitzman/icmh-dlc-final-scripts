@@ -12,7 +12,7 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
     target_x = "mouse_center_x"
     target_y = "mouse_center_y"
 
-    # 1. Keypoint Confidence Summary
+
     likelihood_cols = [
         c for c in df.columns if "likelihood" in c.lower() or "prob" in c.lower()
     ]
@@ -21,11 +21,11 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
         conf_data = df[likelihood_cols].values.flatten()
         threshold = 0.6
 
-        # Use nan-safe functions to safely ignore missing data
+
         mean_conf = np.nanmean(conf_data)
         median_conf = np.nanmedian(conf_data)
 
-        # Fill NaNs with 0.0 before checking threshold (missing point = 0 confidence)
+
         filled_conf = np.nan_to_num(conf_data, nan=0.0)
         frac_below_thresh = np.mean(filled_conf < threshold)
     else:
@@ -38,9 +38,9 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
         "frac_below_thresh": frac_below_thresh,
     }
 
-    # Only plot if coordinate columns exist
+
     if target_x in df.columns and target_y in df.columns:
-        # 2. Trajectory Plot
+
         plt.figure(figsize=(8, 6))
         plt.plot(df[target_x], df[target_y], color="blue", alpha=0.5, lw=1)
         plt.title(f"Trajectory: {video_name}")
@@ -50,9 +50,9 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
         plt.savefig(os.path.join(output_folder, f"{video_name}_trajectory.png"))
         plt.close()
 
-        # 3. Heatmap Occupancy
+
         plt.figure(figsize=(8, 6))
-        # Drop NaNs simultaneously to keep array lengths identical
+
         valid_data = df.dropna(subset=[target_x, target_y])
         if not valid_data.empty:
             plt.hist2d(valid_data[target_x], valid_data[target_y], bins=50, cmap="hot")
@@ -62,7 +62,7 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
         plt.savefig(os.path.join(output_folder, f"{video_name}_heatmap.png"))
         plt.close()
 
-        # 4. Speed Over Time
+
         df["dx"] = df[target_x].diff()
         df["dy"] = df[target_y].diff()
         df["speed"] = np.sqrt(df["dx"] ** 2 + df["dy"] ** 2)
@@ -75,7 +75,7 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
         plt.savefig(os.path.join(output_folder, f"{video_name}_speed.png"))
         plt.close()
 
-    # Write individual stats out
+
     summary_df = pd.DataFrame([stats])
     summary_df.to_csv(stats_out, index=False)
     print(f"[QC] Wrote stats for '{video_name}' → {stats_out}")
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     parser.add_argument("--input", required=True)
     parser.add_argument("--outdir", required=True)
     parser.add_argument("--vid", required=True)
-    parser.add_argument("--stats_out", required=True)  # Changed from --summary
+    parser.add_argument("--stats_out", required=True)
     args = parser.parse_args()
 
     run_qc(args.input, args.outdir, args.vid, args.stats_out)

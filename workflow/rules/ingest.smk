@@ -1,12 +1,4 @@
-"""
-rules/ingest.smk
-Handles transfer of MP4 files from SharePoint/OneDrive → HPC staging dir
-and post-transfer integrity validation.
-Relies on STAGING_DIR and config being defined in the master Snakefile.
-"""
 
-rule run_ingest:
-    """Pull all MP4s from SharePoint into the staging directory."""
     output:
         flag     = touch(INGEST_FLAG),
         manifest = MANIFEST
@@ -33,10 +25,6 @@ rule run_ingest:
         """
 
 rule validate_transfer:
-    """
-    Read the manifest CSV produced by hpc_ingest.py and fail the pipeline
-    if any file has a status other than OK or SKIPPED.
-    """
     input:
         flag     = INGEST_FLAG,
         manifest = MANIFEST,

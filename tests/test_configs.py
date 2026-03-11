@@ -11,7 +11,7 @@ def test_config_yaml_exists_and_loads():
 
     assert isinstance(config, dict), "Config file should parse into a dictionary"
 
-    # Check for some essential keys
+
     expected_keys = [
         "trim_start_seconds",
         "trim_duration_seconds",
@@ -26,8 +26,7 @@ def test_config_yaml_exists_and_loads():
 
 def test_env_file_exists():
     env_path = Path(".env")
-    # It's okay if .env doesn't exist for general running, but it's required for ingest.
-    # We will just warn or check if it exists or if the ingest is skipped.
+
     if env_path.exists():
         with open(env_path, "r") as f:
             content = f.read()
@@ -35,5 +34,5 @@ def test_env_file_exists():
             assert "CLIENT_ID=" in content
             assert "CLIENT_SECRET=" in content
     else:
-        # Just a placeholder in case they only run the pipeline locally.
+
         pass

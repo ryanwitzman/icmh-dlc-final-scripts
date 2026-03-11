@@ -6,13 +6,13 @@ __default__:
   time: "01:30:00"
   gpus: 0
 
-trim_video:           # Make sure this matches the exact rule name!
-  partition: gpu-interactive      # <-- Changed to gpu partition
+trim_video:
+  partition: gpu-interactive
   account: r01704
   cpus: 4
   mem: 8G
   time: "00:10:00"
-  gpus: 1             # <-- Requested 1 GPU for FFmpeg NVENC
+  gpus: 1
 
 resize_for_dlc:       
   partition: general

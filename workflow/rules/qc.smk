@@ -30,13 +30,13 @@ rule aggregate_qc:
     output:
         summary = OUTPUT_DIR + "/qc_summary.csv"
     run:
-        # Read all individual stat files and concatenate them
+
         df_list = [pd.read_csv(f) for f in input.stats]
         
         if df_list:
             final_df = pd.concat(df_list, ignore_index=True)
             final_df.to_csv(output.summary, index=False)
         else:
-            # Fallback if the batch is completely empty
+
             with open(output.summary, 'w') as f:
                 f.write("video,mean_conf,median_conf,frac_below_thresh\n")

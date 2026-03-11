@@ -32,9 +32,6 @@ from pathlib import Path
 import pandas as pd
 
 
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
 
 
 def setup_logger(log_file: str) -> logging.Logger:
@@ -59,9 +56,6 @@ def setup_logger(log_file: str) -> logging.Logger:
     return logger
 
 
-# ---------------------------------------------------------------------------
-# Validation
-# ---------------------------------------------------------------------------
 
 
 def validate_h5(
@@ -87,13 +81,11 @@ def validate_h5(
     errors: list[str] = []
     nlevels = df.columns.nlevels
 
-    # Resolve the bodypart level index (3-level → 1, 4-level → 2)
+
     bp_level = 1 if nlevels == 3 else 2
     present_bodyparts = df.columns.get_level_values(bp_level).unique().tolist()
 
-    # ------------------------------------------------------------------
-    # 1. Expected bodyparts
-    # ------------------------------------------------------------------
+
     if expected_bodyparts:
         missing = sorted(set(expected_bodyparts) - set(present_bodyparts))
         if missing:
@@ -107,9 +99,7 @@ def validate_h5(
                 f"expected bodypart(s) present."
             )
 
-    # ------------------------------------------------------------------
-    # 2. Frame count
-    # ------------------------------------------------------------------
+
     if expected_frames is not None:
         actual = len(df)
         if actual != expected_frames:
@@ -120,9 +110,7 @@ def validate_h5(
         else:
             logger.info(f"[validate] Frame count OK — {actual} frame(s).")
 
-    # ------------------------------------------------------------------
-    # 3. Likelihood values in [0, 1]
-    # ------------------------------------------------------------------
+
     coord_level = nlevels - 1
     like_mask = df.columns.get_level_values(coord_level) == "likelihood"
     like_cols = df.columns[like_mask]
@@ -134,7 +122,7 @@ def validate_h5(
         out_of_range = (like_df < 0.0) | (like_df > 1.0)
         bad_cols = [str(c) for c in like_cols[out_of_range.any(axis=0)]]
         if bad_cols:
-            # Report worst offenders (up to 5) to keep the message readable
+
             sample = bad_cols[:5]
             extra = f" (and {len(bad_cols) - 5} more)" if len(bad_cols) > 5 else ""
             errors.append(
@@ -146,20 +134,18 @@ def validate_h5(
                 f"likelihood column(s) in [0, 1]."
             )
 
-    # ------------------------------------------------------------------
-    # 4. No all-NaN bodyparts after pcutoff
-    # ------------------------------------------------------------------
+
     all_nan_bps: list[str] = []
     for bp in present_bodyparts:
         try:
-            # Navigate to the likelihood series regardless of nlevels
+
             if nlevels == 3:
                 like_series = df.xs("likelihood", level=2, axis=1)[bp]
             else:
-                # 4-level: xs on the coord level (3), then look up bodypart
+
                 like_series = df.xs("likelihood", level=3, axis=1)[bp]
         except KeyError:
-            continue  # No likelihood for this bodypart; caught elsewhere
+            continue
 
         passing = (like_series.astype(float) >= pcutoff).sum()
         if passing == 0:
@@ -176,9 +162,7 @@ def validate_h5(
             f"frame above pcutoff={pcutoff}."
         )
 
-    # ------------------------------------------------------------------
-    # Fail hard if any errors were found
-    # ------------------------------------------------------------------
+
     if errors:
         logger.error(f"[validate] Validation FAILED with {len(errors)} error(s):")
         for i, msg in enumerate(errors, 1):
@@ -190,9 +174,6 @@ def validate_h5(
     logger.info("[validate] All checks passed.")
 
 
-# ---------------------------------------------------------------------------
-# Conversion
-# ---------------------------------------------------------------------------
 
 
 def load_h5(h5_path: Path, logger: logging.Logger) -> pd.DataFrame:
@@ -234,25 +215,25 @@ def flatten(df: pd.DataFrame, pcutoff: float, logger: logging.Logger) -> pd.Data
     nlevels = df.columns.nlevels
 
     if nlevels == 3:
-        # Single-animal: drop scorer level, keep (bodypart, coord)
+
         df.columns = df.columns.droplevel(0)
         bodyparts = df.columns.get_level_values(0).unique().tolist()
 
     elif nlevels == 4:
-        # Multi-animal: drop scorer level, keep (individual, bodypart, coord)
+
         df.columns = df.columns.droplevel(0)
-        # Flatten individual+bodypart into a single label
+
         individuals = df.columns.get_level_values(0).unique().tolist()
         logger.info(f"Multi-animal H5, individuals: {individuals}")
-        # Collapse (individual, bodypart) → "individual_bodypart"
+
         new_cols = [
             "_".join(filter(None, [ind, bp, coord])) for ind, bp, coord in df.columns
         ]
         df.columns = new_cols
-        # Rebuild as if single-level for uniform processing below
+
         rows = {"frame": range(len(df))}
         out = pd.DataFrame(rows)
-        # group columns by (individual, bodypart) pairs
+
         processed_pairs: set = set()
         for col in df.columns:
             parts = col.rsplit("_", 1)
@@ -279,7 +260,7 @@ def flatten(df: pd.DataFrame, pcutoff: float, logger: logging.Logger) -> pd.Data
         logger.info(f"Flattened {n_bp} bodypart(s)/individual(s).")
         return out
 
-    # --- Single-animal path ---
+
     bodyparts = df.columns.get_level_values(0).unique().tolist()
     logger.info(f"Bodyparts ({len(bodyparts)}): {bodyparts}")
 
@@ -297,7 +278,7 @@ def flatten(df: pd.DataFrame, pcutoff: float, logger: logging.Logger) -> pd.Data
             continue
 
         likelihood = bp_df["likelihood"].astype(float)
-        mask = likelihood < pcutoff  # True where confidence is too low
+        mask = likelihood < pcutoff
 
         rows[f"{bp}_x"] = bp_df["x"].round(1).where(~mask)
         rows[f"{bp}_y"] = bp_df["y"].round(1).where(~mask)
@@ -314,9 +295,6 @@ def flatten(df: pd.DataFrame, pcutoff: float, logger: logging.Logger) -> pd.Data
     return out
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 
 
 def main():
