@@ -14,13 +14,13 @@ Docs:
 1. Clone this to your scratch or project dir on the cluster.
 2. Build the env:
    ```bash
-   mamba env create -f envs/environment_linux.yml
+   mamba env create -f envs/environment.yml
    conda activate icmh-dlc-310
    ```
 3. Put your raw `.mp4` videos in `staging/` (if not using the ingest script).
 4. Run it:
    ```bash
-   sbatch /N/project/msk_dl/icmh-dlc-final-scripts/scripts/submit_workflow.sh
+   sbatch scripts/submit_workflow.sh
    ```
 
 Note: The resize rule needs FFmpeg 6.1 to work right.

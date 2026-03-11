@@ -11,7 +11,6 @@ rule dlc_inference:
         model_arg=f"--superanimal {config.get('superanimal_model', 'superanimal_topviewmouse')}"
     shell:
         """
-
         python -u {input.script} \
             --videos {input.video} \
             --out_dir {params.out_dir} \

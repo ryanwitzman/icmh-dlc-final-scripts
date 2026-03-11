@@ -1,7 +1,9 @@
+base_dir: "/N/project/msk_dl/icmh-dlc-final-scripts"
 trim_start_seconds: 60
 fps: 30
 trim_duration_seconds: 300
 output_codec: libx264
+output_container: mp4
 frame_rate_handling_policy: CFR
 output_dir_path: outputs/
 staging_dir:     "../staging"

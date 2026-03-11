@@ -44,5 +44,4 @@ include: "rules/qc.smk"
 rule all:
     input:
         expand(OUTPUT_DIR + "/postprocessed/{vid}.csv", vid=VIDEOS),
-
         OUTPUT_DIR + "/qc_summary.csv"

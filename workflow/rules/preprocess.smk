@@ -1,4 +1,3 @@
-
 rule trim_video:
     input:
         video    = lambda wildcards: PATH_MAP[wildcards.vid],

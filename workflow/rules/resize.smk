@@ -1,7 +1,4 @@
-
 RESIZE_SCALE = config.get("resize_scale", "iw/2:ih/2")
-
-
 RESIZED_DIR = f"{OUTPUT_DIR}/trimmed_resized"
 
 rule resize_for_dlc:

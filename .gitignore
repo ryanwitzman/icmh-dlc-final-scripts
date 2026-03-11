@@ -23,3 +23,6 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+directions/
+read_pdf.py
+*.txt

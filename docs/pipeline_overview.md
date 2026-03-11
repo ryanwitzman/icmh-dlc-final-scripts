@@ -12,11 +12,13 @@ Pulls raw `.mp4` videos from the Kacena Lab SharePoint into `staging/`. It's dis
 
 ## 2. Preprocess
 Rule: `preprocess.smk`
-Trims the first 60 seconds off so we skip the setup time, and keeps 300 seconds of footage for testing 
+Trims the first 60 seconds off so we skip the setup time, and keeps 300 seconds of footage for testing.
 
-**Expected Inputs:** Raw video `staging/{vid}.mp4`
+If you want to run this outside of Snakemake, you can just run `python src/preprocess/batch_trim.py` to loop through all the `.mp4` files in the input folder and trim them all at once. It drops a quick run log in `outputs/batch_trim_log.txt` so you can see if anything failed.
+
+**Expected Inputs:** Raw video `staging/{vid}.mp4` (or `inputs/` for the batch script)
 **Expected Outputs:** `outputs/trimmed_{vid}.mp4`
-**Logs:** `outputs/logs/{vid}_preprocess.log`
+**Logs:** `outputs/logs/{vid}_preprocess.log` (and `outputs/batch_trim_log.txt`)
 
 ## 3. Resize
 Rule: `resize.smk`
@@ -30,9 +32,15 @@ Scales the video down by half (`iw/2:ih/2`), encodes with `libx264`, and forces 
 Rule: `dlc_inference.smk`
 Runs DeepLabCut 2.3.11 using the `superanimal_topviewmouse` model. This runs on the `gpu-interactive` partition. You may need to switch to `gpu` partition if inference is expected to take longer than 4 hours.
 
+If you don't want to use Snakemake, you can submit the standalone job:
+```bash
+sbatch scripts/submit_dlc_inference.sh
+```
+This automatically crawls your `outputs/trimmed_resized` folder and runs inference on every video it finds, dropping the results into `outputs/dlc_results`.
+
 **Expected Inputs:** Resized video `outputs/trimmed_resized/trimmed_{vid}.mp4`
 **Expected Outputs:** `outputs/dlc_results/{vid}_superanimal.h5`
-**Logs:** `outputs/logs/{vid}_inference.log`
+**Logs:** `outputs/logs/{vid}_inference.log` (and Snakemake logs or `dlc_inference_*.out` for the standalone run)
 
 ## 5. Postprocess
 Rule: `postprocess.smk`

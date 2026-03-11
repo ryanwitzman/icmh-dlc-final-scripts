@@ -1,4 +1,4 @@
-
+rule ingest:
     output:
         flag     = touch(INGEST_FLAG),
         manifest = MANIFEST
