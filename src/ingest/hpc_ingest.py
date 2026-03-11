@@ -1,28 +1,3 @@
-"""
-hpc_ingest.py
-─────────────────────────────────────────────────────────────────────────────
-Pulls all MP4 files from a SharePoint / OneDrive folder (recursively) into a
-local HPC staging directory, keeps a per-batch CSV log, and validates every
-file's integrity with SHA-256 checksums after transfer.
-
-Dependencies:
-    pip install msal requests tqdm
-
-Auth:
-    Uses the Microsoft Graph API with a registered Azure AD app.
-    Required API permission (delegated or app):  Files.Read.All
-
-Usage:
-    python hpc_ingest.py \
-        --sharepoint-url "https://<tenant>.sharepoint.com/sites/<site>" \
-        --remote-path    "Shared Documents/ProjectX/Videos" \
-        --staging-dir    "/scratch/staging/batch_001" \
-        --tenant-id      "<azure-tenant-id>" \
-        --client-id      "<azure-app-client-id>" \
-        --client-secret  "<azure-app-client-secret>"
-─────────────────────────────────────────────────────────────────────────────
-"""
-
 import argparse
 import csv
 import hashlib
@@ -37,8 +12,6 @@ from urllib.parse import quote
 import msal
 import requests
 from tqdm import tqdm
-
-# ── Constants ────────────────────────────────────────────────────────────────
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0"
 CHUNK_SIZE = 8 * 1024 * 1024  # 8 MB download chunks
@@ -61,10 +34,6 @@ LOG_COLUMNS = [
     "notes",
 ]
 
-
-# ── Logging setup ─────────────────────────────────────────────────────────────
-
-
 def setup_logging(log_dir: Path, batch_id: str) -> logging.Logger:
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_dir / f"{batch_id}_run.log"
@@ -79,12 +48,8 @@ def setup_logging(log_dir: Path, batch_id: str) -> logging.Logger:
     )
     return logging.getLogger("hpc_ingest")
 
-
-# ── Microsoft Graph auth (delegated — device code flow) ───────────────────────
-
-
 def get_access_token(tenant_id: str, client_id: str) -> str:
-    # Load persisted token cache so re-runs don't require re-auth
+
     cache = msal.SerializableTokenCache()
     if os.path.exists(TOKEN_CACHE):
         cache.deserialize(open(TOKEN_CACHE).read())
@@ -96,12 +61,11 @@ def get_access_token(tenant_id: str, client_id: str) -> str:
         token_cache=cache,
     )
 
-    # Try silent auth from cache first
     accounts = app.get_accounts()
     result = app.acquire_token_silent(SCOPES, account=accounts[0]) if accounts else None
 
     if not result:
-        # Prompt device code login
+
         flow = app.initiate_device_flow(scopes=SCOPES)
         if "user_code" not in flow:
             raise RuntimeError(f"Device flow failed: {flow.get('error_description')}")
@@ -112,19 +76,13 @@ def get_access_token(tenant_id: str, client_id: str) -> str:
     if "access_token" not in result:
         raise RuntimeError(f"Auth failed: {result.get('error_description')}")
 
-    # Persist cache for next run
     if cache.has_state_changed:
         with open(TOKEN_CACHE, "w") as f:
             f.write(cache.serialize())
 
     return result["access_token"]
 
-
-# ── Graph helpers ─────────────────────────────────────────────────────────────
-
-
 def graph_get(token: str, url: str) -> dict:
-    """GET a Graph endpoint, handling 429 rate-limits with back-off."""
     headers = {"Authorization": f"Bearer {token}"}
     for attempt in range(5):
         r = requests.get(url, headers=headers, timeout=60)
@@ -137,15 +95,8 @@ def graph_get(token: str, url: str) -> dict:
         return r.json()
     raise RuntimeError(f"Failed after retries: {url}")
 
-
 def resolve_drive_and_item(token: str, sharepoint_url: str, remote_path: str):
-    """
-    Return (drive_id, item_id) for a path inside a SharePoint site.
-    sharepoint_url : e.g. https://contoso.sharepoint.com/sites/MyTeam
-    remote_path    : relative path inside the document library,
-                     e.g. "Shared Documents/Videos"
-    """
-    # Extract site hostname + site path
+
     from urllib.parse import urlparse
 
     parsed = urlparse(sharepoint_url)
@@ -156,12 +107,10 @@ def resolve_drive_and_item(token: str, sharepoint_url: str, remote_path: str):
     site_data = graph_get(token, site_url)
     site_id = site_data["id"]
 
-    # Default document library drive
     drives_url = f"{GRAPH_BASE}/sites/{site_id}/drives"
     drives = graph_get(token, drives_url)["value"]
-    drive_id = drives[0]["id"]  # first drive = default doc library
+    drive_id = drives[0]["id"]
 
-    # Resolve the folder path
     encoded = quote(remote_path)
     item_url = f"{GRAPH_BASE}/drives/{drive_id}/root:/{encoded}"
     item_data = graph_get(token, item_url)
@@ -169,12 +118,7 @@ def resolve_drive_and_item(token: str, sharepoint_url: str, remote_path: str):
 
     return drive_id, item_id
 
-
 def walk_mp4s(token: str, drive_id: str, item_id: str, logger: logging.Logger):
-    """
-    Recursively yield dicts describing every .mp4 file under item_id.
-    Each dict: { "name", "remote_path", "size", "download_url", "quickXorHash" }
-    """
     url = f"{GRAPH_BASE}/drives/{drive_id}/items/{item_id}/children"
     while url:
         data = graph_get(token, url)
@@ -196,10 +140,6 @@ def walk_mp4s(token: str, drive_id: str, item_id: str, logger: logging.Logger):
                 }
         url = data.get("@odata.nextLink")  # pagination
 
-
-# ── Integrity helpers ─────────────────────────────────────────────────────────
-
-
 def sha256_file(path: Path) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -207,16 +147,10 @@ def sha256_file(path: Path) -> str:
             h.update(chunk)
     return h.hexdigest()
 
-
 def validate_size(path: Path, expected: int) -> bool:
     return path.stat().st_size == expected
 
-
-# ── Download ──────────────────────────────────────────────────────────────────
-
-
 def download_file(url: str, dest: Path, size: int, logger: logging.Logger) -> float:
-    """Stream-download to dest. Returns elapsed seconds."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     with requests.get(url, stream=True, timeout=120) as r:
@@ -232,10 +166,6 @@ def download_file(url: str, dest: Path, size: int, logger: logging.Logger) -> fl
                 f.write(chunk)
                 bar.update(len(chunk))
     return time.time() - t0
-
-
-# ── Batch log ─────────────────────────────────────────────────────────────────
-
 
 class BatchLog:
     def __init__(self, path: Path):
@@ -259,10 +189,6 @@ class BatchLog:
         sizes = sum(int(r["size_bytes"] or 0) for r in self._rows)
         return {"total": total, "ok": ok, "failed": failed, "total_bytes": sizes}
 
-
-# ── Main pipeline ─────────────────────────────────────────────────────────────
-
-
 def main():
     parser = argparse.ArgumentParser(description="HPC SharePoint video ingest")
     parser.add_argument("--sharepoint-url", required=True)
@@ -274,7 +200,7 @@ def main():
     )
     parser.add_argument("--tenant-id", required=True)
     parser.add_argument("--client-id", required=True)
-    # no --client-secret: delegated auth uses device code flow instead
+
     parser.add_argument(
         "--batch-id", default=None, help="Unique batch label (default: timestamp)"
     )
@@ -291,22 +217,18 @@ def main():
     logger = setup_logging(log_dir, batch_id)
     batch_log = BatchLog(log_dir / f"{batch_id}_manifest.csv")
 
-    # ── 1. Staging directory ─────────────────────────────────────────────────
     staging.mkdir(parents=True, exist_ok=True)
     logger.info("Staging directory: %s", staging)
     logger.info("Batch ID: %s", batch_id)
 
-    # ── 2. Auth ──────────────────────────────────────────────────────────────
     logger.info("Authenticating with Microsoft Graph …")
     token = get_access_token(args.tenant_id, args.client_id)
 
-    # ── 3. Resolve root folder ───────────────────────────────────────────────
     logger.info("Resolving SharePoint path: %s", args.remote_path)
     drive_id, item_id = resolve_drive_and_item(
         token, args.sharepoint_url, args.remote_path
     )
 
-    # ── 4. Walk & download ───────────────────────────────────────────────────
     logger.info("Walking remote tree for .mp4 files …")
     for file_info in walk_mp4s(token, drive_id, item_id, logger):
         rel = Path(file_info["remote_path"].lstrip("/"))
@@ -322,7 +244,6 @@ def main():
             }
         )
 
-        # Skip logic
         if args.skip_existing and dest.exists():
             logger.info("SKIP (exists): %s", rel)
             row["status"] = "SKIPPED"
@@ -349,17 +270,14 @@ def main():
         row["transfer_end"] = t_end.isoformat()
         row["duration_s"] = f"{elapsed:.1f}"
 
-        # ── 5. Post-transfer validation ──────────────────────────────────────
         issues = []
 
-        # 5a. Size check
         if not validate_size(dest, file_info["size"]):
             issues.append(
                 f"size mismatch (expected {file_info['size']}, "
                 f"got {dest.stat().st_size})"
             )
 
-        # 5b. SHA-256 (if Graph returned one; otherwise compute & record only)
         local_sha = sha256_file(dest)
         row["sha256_local"] = local_sha
         if file_info["sha256remote"]:
@@ -376,7 +294,7 @@ def main():
             row["status"] = "CORRUPT"
             row["notes"] = "; ".join(issues)
             logger.error("INTEGRITY FAILURE: %s — %s", rel, row["notes"])
-            dest.rename(dest.with_suffix(".CORRUPT"))  # quarantine
+            dest.rename(dest.with_suffix(".CORRUPT"))
         else:
             row["status"] = "OK"
             logger.info(
@@ -385,7 +303,6 @@ def main():
 
         batch_log.add(row)
 
-    # ── 6. Summary ───────────────────────────────────────────────────────────
     s = batch_log.summary()
     logger.info("═" * 60)
     logger.info("BATCH COMPLETE  id=%s", batch_id)
@@ -401,6 +318,6 @@ def main():
 
     sys.exit(0 if s["failed"] == 0 else 1)
 
-
 if __name__ == "__main__":
     main()
+

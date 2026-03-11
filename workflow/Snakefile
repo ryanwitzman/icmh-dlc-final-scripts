@@ -1,33 +1,48 @@
 import os
 from dotenv import load_dotenv
 
-
 configfile: "../configs/config.yaml"
 
 load_dotenv("../.env")
-config["tenant_id"]     = os.environ["TENANT_ID"]
-config["client_id"]     = os.environ["CLIENT_ID"]
-config["client_secret"] = os.environ["CLIENT_SECRET"]
-# --- PATHS (shared across all rule files via include namespace) ---
-INPUT_DIR  = config.get("input_dir",  "../inputs")
-STAGING_DIR = config.get("staging_dir", "../staging")
-OUTPUT_DIR = config.get("output_dir", "../outputs")
+config["tenant_id"]     = os.getenv("TENANT_ID")
+config["client_id"]     = os.getenv("CLIENT_ID")
+config["client_secret"] = os.getenv("CLIENT_SECRET")
 
-# --- FILE DISCOVERY (done once here, available to all included rule files) ---
-raw_files = [
-    os.path.join(dirpath, f)
-    for dirpath, dirnames, files in os.walk(STAGING_DIR)
-    for f in files if f.lower().endswith(".mp4")
-]
+
+INPUT_DIR   = config.get("input_dir",   "../inputs")
+STAGING_DIR = config.get("staging_dir", "../staging")
+OUTPUT_DIR  = config.get("output_dir",  "../outputs")
+RESIZED_DIR = f"{OUTPUT_DIR}/trimmed_resized"
+
+
+BATCH_ID    = config.get("batch_id", "batch_001")
+LOG_DIR     = f"{STAGING_DIR}/_logs"
+MANIFEST    = f"{LOG_DIR}/{BATCH_ID}_manifest.csv"
+INGEST_FLAG = f"{LOG_DIR}/{BATCH_ID}.ingest.done"
+
+
+raw_files = []
+if os.path.exists(STAGING_DIR):
+    raw_files = [
+        os.path.join(dirpath, f)
+        for dirpath, _, files in os.walk(STAGING_DIR)
+        for f in files if f.lower().endswith(".mp4")
+    ]
 
 PATH_MAP = {os.path.basename(f): f for f in raw_files}
+VIDEOS   = list(PATH_MAP.keys())
 
-# --- INCLUDE RULE FILES ---
-include: "rules/ingest.smk"
+
+#include: "rules/ingest.smk"
 include: "rules/preprocess.smk"
+include: "rules/resize.smk"
+include: "rules/dlc_inference.smk"
+include: "rules/postprocess.smk"
+include: "rules/qc.smk"
 
-# --- FINAL TARGET ---
+
 rule all:
     input:
-        rules.validate_transfer.output,                   # ingest must finish first
-        expand(f"{OUTPUT_DIR}/trimmed_{{vid}}", vid=PATH_MAP.keys())
+        expand(OUTPUT_DIR + "/postprocessed/{vid}.csv", vid=VIDEOS),
+
+        OUTPUT_DIR + "/qc_summary.csv"
