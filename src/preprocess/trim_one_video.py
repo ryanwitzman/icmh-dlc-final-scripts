@@ -1,11 +1,9 @@
-
 import os
 import shutil
 from moviepy.video.io.VideoFileClip import VideoFileClip
 import imageio_ffmpeg as ffmpeg
 import yaml
 import argparse
-
 
 parser = argparse.ArgumentParser(description="Process a video file for trimming.")
 parser.add_argument(
@@ -23,25 +21,22 @@ TRIM_START_SECONDS = config_vars["trim_start_seconds"]
 FPS = config_vars["fps"]
 TRIM_DURATION_SECONDS = config_vars[
     "trim_duration_seconds"
-]  # This should be 300 for 5 minutes
+]
 OUTPUT_CODEC = config_vars["output_codec"]
 FRAME_RATE_HANDLING_POLICY = config_vars[
     "frame_rate_handling_policy"
-]  # e.g., "cfr" or "constant"
+]
 OUTPUT_DIR_PATH = config_vars["output_dir_path"]
 
 TRIM_END_SECONDS = TRIM_START_SECONDS + TRIM_DURATION_SECONDS
 
-
 def setup_ffmpeg():
-    """Configures the FFmpeg path for moviepy."""
     ffmpeg_exe = shutil.which("ffmpeg")
     if ffmpeg_exe:
         os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_exe
 
     print(f"FFmpeg Version: {ffmpeg.get_ffmpeg_version()}")
     print(f"FFmpeg Path: {os.environ.get('IMAGEIO_FFMPEG_EXE', 'Not Found')}")
-
 
 def process_videos():
 
@@ -54,9 +49,7 @@ def process_videos():
     if not os.path.exists(output_dir_path):
         os.makedirs(output_dir_path, exist_ok=True)
 
-
     print(f"Starting processing for {len(video_files)} files...")
-
 
     ffmpeg_params = []
     if FRAME_RATE_HANDLING_POLICY == "CFR":
@@ -68,7 +61,6 @@ def process_videos():
             filename = os.path.basename(video_path)
             output_path = os.path.join(output_dir_path, f"trimmed_{filename}")
 
-
             clip = VideoFileClip(video_path).subclipped(
                 TRIM_START_SECONDS, TRIM_END_SECONDS
             )
@@ -76,7 +68,6 @@ def process_videos():
             clip.write_videofile(
                 output_path, codec=OUTPUT_CODEC, fps=FPS, ffmpeg_params=ffmpeg_params
             )
-
 
             clip.write_videofile(
                 output_path,
@@ -90,7 +81,7 @@ def process_videos():
         except Exception as e:
             print(f"Error processing {video_path}: {e}")
 
-
 if __name__ == "__main__":
     setup_ffmpeg()
     process_videos()
+

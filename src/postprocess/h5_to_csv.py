@@ -1,38 +1,9 @@
-"""
-h5_to_csv.py
-------------
-Convert a DLC .h5 output file to a flat CSV with consistent headers and units.
-
-DLC's native H5 has a 3-level MultiIndex column structure:
-    (scorer, bodypart, coord)  →  e.g. (DLC_resnet50_..., nose, x)
-
-This script flattens that to one row per frame with columns:
-    frame, nose_x, nose_y, nose_likelihood, ear_left_x, ...
-
-Units:
-    x, y        → pixels (integer-rounded)
-    likelihood  → float [0.0 – 1.0]
-    frame       → 0-based integer frame index
-
-Usage:
-    python h5_to_csv.py \
-        --h5 ../outputs/dlc_results/VIDEO_superanimal.h5 \
-        --out_csv ../outputs/postprocessed/VIDEO.csv \
-        --log_file ../outputs/logs/VIDEO_postprocess.log \
-        [--pcutoff 0.6] \
-        [--expected_bodyparts nose ear_left ear_right] \
-        [--expected_frames 1800]
-"""
-
 import argparse
 import logging
 import sys
 from pathlib import Path
 
 import pandas as pd
-
-
-
 
 def setup_logger(log_file: str) -> logging.Logger:
     log_path = Path(log_file)
@@ -55,9 +26,6 @@ def setup_logger(log_file: str) -> logging.Logger:
 
     return logger
 
-
-
-
 def validate_h5(
     df: pd.DataFrame,
     logger: logging.Logger,
@@ -66,25 +34,11 @@ def validate_h5(
     expected_frames: int | None = None,
     pcutoff: float = 0.6,
 ) -> None:
-    """
-    Run pre-conversion checks on the raw MultiIndex DataFrame.
-    Raises ValueError on the first failed check; all errors are logged
-    before raising so the log captures the full picture.
-
-    Checks
-    ------
-    1. Expected bodyparts present (if --expected_bodyparts supplied).
-    2. Frame count matches video (if --expected_frames supplied).
-    3. Likelihood values are in [0.0, 1.0].
-    4. No bodypart is all-NaN after applying pcutoff.
-    """
     errors: list[str] = []
     nlevels = df.columns.nlevels
 
-
     bp_level = 1 if nlevels == 3 else 2
     present_bodyparts = df.columns.get_level_values(bp_level).unique().tolist()
-
 
     if expected_bodyparts:
         missing = sorted(set(expected_bodyparts) - set(present_bodyparts))
@@ -99,7 +53,6 @@ def validate_h5(
                 f"expected bodypart(s) present."
             )
 
-
     if expected_frames is not None:
         actual = len(df)
         if actual != expected_frames:
@@ -109,7 +62,6 @@ def validate_h5(
             )
         else:
             logger.info(f"[validate] Frame count OK — {actual} frame(s).")
-
 
     coord_level = nlevels - 1
     like_mask = df.columns.get_level_values(coord_level) == "likelihood"
@@ -133,7 +85,6 @@ def validate_h5(
                 f"[validate] Likelihood range OK — all {len(like_cols)} "
                 f"likelihood column(s) in [0, 1]."
             )
-
 
     all_nan_bps: list[str] = []
     for bp in present_bodyparts:
@@ -162,7 +113,6 @@ def validate_h5(
             f"frame above pcutoff={pcutoff}."
         )
 
-
     if errors:
         logger.error(f"[validate] Validation FAILED with {len(errors)} error(s):")
         for i, msg in enumerate(errors, 1):
@@ -173,11 +123,7 @@ def validate_h5(
 
     logger.info("[validate] All checks passed.")
 
-
-
-
 def load_h5(h5_path: Path, logger: logging.Logger) -> pd.DataFrame:
-    """Read DLC H5 and return the raw MultiIndex DataFrame."""
     try:
         df = pd.read_hdf(h5_path)
     except Exception as e:
@@ -200,18 +146,7 @@ def load_h5(h5_path: Path, logger: logging.Logger) -> pd.DataFrame:
     logger.info(f"H5 loaded: {len(df)} frames, scorer(s): {scorer}")
     return df
 
-
 def flatten(df: pd.DataFrame, pcutoff: float, logger: logging.Logger) -> pd.DataFrame:
-    """
-    Flatten DLC MultiIndex columns to a tidy single-level DataFrame.
-
-    Supports both:
-      - single-animal: (scorer, bodypart, coord)
-      - multi-animal:  (scorer, individuals, bodypart, coord)
-
-    Output columns: frame, <bodypart>_x, <bodypart>_y, <bodypart>_likelihood
-    Low-confidence x/y values (likelihood < pcutoff) are set to NaN.
-    """
     nlevels = df.columns.nlevels
 
     if nlevels == 3:
@@ -260,7 +195,6 @@ def flatten(df: pd.DataFrame, pcutoff: float, logger: logging.Logger) -> pd.Data
         logger.info(f"Flattened {n_bp} bodypart(s)/individual(s).")
         return out
 
-
     bodyparts = df.columns.get_level_values(0).unique().tolist()
     logger.info(f"Bodyparts ({len(bodyparts)}): {bodyparts}")
 
@@ -293,9 +227,6 @@ def flatten(df: pd.DataFrame, pcutoff: float, logger: logging.Logger) -> pd.Data
         f"(pcutoff={pcutoff})."
     )
     return out
-
-
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -378,6 +309,6 @@ def main():
         logger.error(f"FAILED: {e}", exc_info=True)
         sys.exit(1)
 
-
 if __name__ == "__main__":
     main()
+

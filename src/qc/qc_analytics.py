@@ -4,14 +4,12 @@ import numpy as np
 import os
 import argparse
 
-
 def run_qc(input_csv, output_folder, video_name, stats_out):
     df = pd.read_csv(input_csv)
     os.makedirs(output_folder, exist_ok=True)
 
     target_x = "mouse_center_x"
     target_y = "mouse_center_y"
-
 
     likelihood_cols = [
         c for c in df.columns if "likelihood" in c.lower() or "prob" in c.lower()
@@ -21,10 +19,8 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
         conf_data = df[likelihood_cols].values.flatten()
         threshold = 0.6
 
-
         mean_conf = np.nanmean(conf_data)
         median_conf = np.nanmedian(conf_data)
-
 
         filled_conf = np.nan_to_num(conf_data, nan=0.0)
         frac_below_thresh = np.mean(filled_conf < threshold)
@@ -38,7 +34,6 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
         "frac_below_thresh": frac_below_thresh,
     }
 
-
     if target_x in df.columns and target_y in df.columns:
 
         plt.figure(figsize=(8, 6))
@@ -50,7 +45,6 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
         plt.savefig(os.path.join(output_folder, f"{video_name}_trajectory.png"))
         plt.close()
 
-
         plt.figure(figsize=(8, 6))
 
         valid_data = df.dropna(subset=[target_x, target_y])
@@ -61,7 +55,6 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
         plt.gca().invert_yaxis()
         plt.savefig(os.path.join(output_folder, f"{video_name}_heatmap.png"))
         plt.close()
-
 
         df["dx"] = df[target_x].diff()
         df["dy"] = df[target_y].diff()
@@ -75,11 +68,9 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
         plt.savefig(os.path.join(output_folder, f"{video_name}_speed.png"))
         plt.close()
 
-
     summary_df = pd.DataFrame([stats])
     summary_df.to_csv(stats_out, index=False)
     print(f"[QC] Wrote stats for '{video_name}' → {stats_out}")
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -90,3 +81,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run_qc(args.input, args.outdir, args.vid, args.stats_out)
+

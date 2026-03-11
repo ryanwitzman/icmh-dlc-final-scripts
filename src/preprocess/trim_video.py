@@ -14,12 +14,11 @@ except NameError:
             "trim_start_seconds": 60,
             "fps": 30,
             "trim_duration_seconds": 300,
-            "output_codec": "libx264",  # fallback if no GPU
+            "output_codec": "libx264",
             "frame_rate_handling_policy": "CFR",
             "use_gpu": True,
         },
     )
-
 
 input_path = snakemake.input[0]
 output_path = snakemake.output[0]
@@ -31,9 +30,7 @@ use_gpu = snakemake.config.get("use_gpu", True)
 
 ffmpeg_exe = shutil.which("ffmpeg") or "ffmpeg"
 
-
 def has_nvenc() -> bool:
-    """Return True if this machine has a working NVENC encoder."""
     try:
         result = subprocess.run(
             [ffmpeg_exe, "-hide_banner", "-encoders"], capture_output=True, text=True
@@ -41,7 +38,6 @@ def has_nvenc() -> bool:
         return "h264_nvenc" in result.stdout
     except FileNotFoundError:
         return False
-
 
 def build_ffmpeg_cmd(input_path: str, output_path: str, gpu: bool) -> list[str]:
     start_str = str(trim_start)
@@ -84,7 +80,6 @@ def build_ffmpeg_cmd(input_path: str, output_path: str, gpu: bool) -> list[str]:
     )
     return cmd
 
-
 def process_video():
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
@@ -107,6 +102,6 @@ def process_video():
 
     print(f"Done: {output_path}")
 
-
 if __name__ == "__main__":
     process_video()
+
