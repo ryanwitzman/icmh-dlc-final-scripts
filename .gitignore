@@ -19,4 +19,4 @@ workflow/logs/
 *.mp4
 .pytest_cache/
 tests/__pycache__/
-*.*.pyc
+*.*.__pycache__

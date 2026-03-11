@@ -69,13 +69,6 @@ def process_videos():
                 output_path, codec=OUTPUT_CODEC, fps=FPS, ffmpeg_params=ffmpeg_params
             )
 
-            clip.write_videofile(
-                output_path,
-                codec=OUTPUT_CODEC,
-                fps=FPS,
-                ffmpeg_params=ffmpeg_params,
-            )
-
             clip.close()
 
         except Exception as e:
