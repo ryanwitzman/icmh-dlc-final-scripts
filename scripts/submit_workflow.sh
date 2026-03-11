@@ -1,32 +1,33 @@
 #!/bin/bash
-# =============================================================================
-# submit_pipeline.slurm
-# Master job: runs on a lightweight general node and fans out per-rule jobs.
-# Only dlc_inference lands on the GPU partition (via cluster.yaml).
-# =============================================================================
 #SBATCH --job-name=snakemake_master
-#SBATCH --output=logs/snakemake_master_%j.out
-#SBATCH --error=logs/snakemake_master_%j.err
-#SBATCH --time=48:00:00
+#SBATCH --output=/N/project/msk_dl/icmh-dlc-final-scripts/workflow/logs/snakemake_master_%j.out
+#SBATCH --error=/N/project/msk_dl/icmh-dlc-final-scripts/workflow/logs/snakemake_master_%j.err
+#SBATCH --time=01:00:00
 #SBATCH --partition=general
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=2
-#SBATCH --mem=8G
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=2G
 #SBATCH --account=r01704
+
+# =============================================================================
+# EMERGENCY DEBUG TRAP (Must be below SBATCH headers)
+# =============================================================================
+exec > /N/project/msk_dl/icmh-dlc-final-scripts/workflow/master_debug.log 2>&1
+set -x
 
 # =============================================================================
 # 0. Setup
 # =============================================================================
 module load conda/25.3.0
-conda activate icmh-dlc-310
+source activate icmh-dlc-310
 
 cd /N/project/msk_dl/icmh-dlc-final-scripts/workflow
+snakemake --unlock
+
 mkdir -p logs
 
 # =============================================================================
 # 1. Create a dedicated SLURM submit wrapper
-# This avoids the "jobscript" NameError and export -f subshell scoping issues.
-# Snakemake automatically appends the job script path as the final argument ($7).
 # =============================================================================
 cat << 'EOF' > .slurm_submit_wrapper.sh
 #!/bin/bash
@@ -61,12 +62,9 @@ chmod +x .slurm_submit_wrapper.sh
 # =============================================================================
 # 2. Run Snakemake
 # =============================================================================
-# Notice {jobscript} is intentionally omitted here.
-# =============================================================================
-# 2. Run Snakemake
-# =============================================================================
+# Changed cluster-config path slightly since we are already in the workflow dir
 snakemake \
-  --cluster-config ../workflow/cluster.yaml \
+  --cluster-config cluster.yaml \
   --cluster "./.slurm_submit_wrapper.sh {cluster.partition} {cluster.account} {cluster.cpus} {cluster.mem} {cluster.time} {cluster.gpus}" \
   --jobs 10 \
   --use-conda \

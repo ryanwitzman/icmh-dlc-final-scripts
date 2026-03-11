@@ -1,39 +1,56 @@
 __default__:
   partition: general
   account: r01704
-  cpus: 2
-  mem: 8G
-  time: "01:00:00"
+  cpus: 1
+  mem: 2G
+  time: "01:30:00"
   gpus: 0
 
 trim_video:           # Make sure this matches the exact rule name!
-  partition: gpu      # <-- Changed to gpu partition
+  partition: gpu-interactive      # <-- Changed to gpu partition
   account: r01704
   cpus: 4
   mem: 8G
-  time: "02:00:00"
+  time: "00:10:00"
   gpus: 1             # <-- Requested 1 GPU for FFmpeg NVENC
 
 resize_for_dlc:       
   partition: general
   account: r01704
-  cpus: 4       
-  mem: 4G
-  time: "01:00:00"
+  cpus: 2       
+  mem: 8G
+  time: "00:10:00"
   gpus: 0
 
 dlc_inference:
-  partition: gpu
+  partition: gpu-interactive
   account: r01704
   cpus: 4
   mem: 16G
-  time: "04:00:00"
+  time: "01:00:00"
   gpus: 1             
 
 postprocess:
   partition: general
   account: r01704
   cpus: 2
-  mem: 8G
-  time: "00:30:00"
+  mem: 2G
+  time: "00:10:00"
   gpus: 0
+
+quality_control:
+  partition: general
+  account: r01704
+  cpus: 2
+  mem: 4G
+  time: "00:20:00"
+  gpus: 0
+
+aggregate_qc:
+  partition: general
+  account: r01704
+  cpus: 2
+  mem: 2G
+  time: "00:10:00"
+  gpus: 0
+

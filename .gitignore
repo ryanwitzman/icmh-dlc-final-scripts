@@ -11,3 +11,11 @@ outputs/
 .DS_STORE
 *.mp3
 staging/
+logs/
+workflow/logs/
+*.log
+*.err
+*.out
+*.mp4
+.pytest_cache/
+tests/__pycache__/

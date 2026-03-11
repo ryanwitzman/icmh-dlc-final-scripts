@@ -1,4 +1,6 @@
 # Pipeline Overview
+## NOTE
+You may have to change the requirements in the file `workflow/cluster.yaml` depending on how many videos you have to process. The current settings are good for processing one 5 minute (9000 frames) video of the top view of a mouse.
 
 ## 1. Ingest (Optional)
 Rule: `ingest.smk`
