@@ -9,7 +9,7 @@ output_dir_path: outputs/
 staging_dir:     "../staging"
 input_dir:       "../inputs"
 output_dir:      "../outputs"
-batch_id:        "auto"  # Set to "auto" for timestamp-based IDs, or a fixed name like "batch_001"
+batch_id:        "auto"
 sharepoint_url: "https://indiana.sharepoint.com/sites/msteams_9c5cec-KacenaLabAllResearch"
 remote_path: "Shared Documents/Kacena Lab All Research/Behavior Videos/Behavior Videos/RM1 Study 2023"
 dlc_version: "2.3.11"

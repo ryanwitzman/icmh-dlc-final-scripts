@@ -35,14 +35,20 @@ with open(log_file, "a") as log:
         print(f"Processing {video.name}...")
         t0 = time.time()
         trim_script = str(Path(__file__).resolve().parent / "trim_video.py")
+        out_file = output_dir / f"trimmed_{video.stem}.{ext}"
         result = subprocess.run(
-            ["python", trim_script, "--input-file", str(video)],
+            [
+                "python",
+                trim_script,
+                "--input-file",
+                str(video),
+                "--output-file",
+                str(out_file),
+            ],
             capture_output=True,
             text=True,
         )
         elapsed = time.time() - t0
-
-        out_file = output_dir / f"trimmed_{video.stem}.{ext}"
         if result.returncode == 0 and out_file.exists():
             size_mb = out_file.stat().st_size / 1e6
             status = f"SUCCESS | output={out_file} | size={size_mb:.1f}MB | time={elapsed:.1f}s"

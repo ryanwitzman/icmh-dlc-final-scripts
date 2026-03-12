@@ -26,7 +26,7 @@ rule quality_control:
 
 rule aggregate_qc:
     input:
-        stats = expand(BATCH_DIR + "/qc/{vid}/{vid}_stats.csv", vid=VIDEOS)
+        stats = STATS_PATHS
     output:
         summary = BATCH_DIR + "/qc/qc_summary.csv"
     run:

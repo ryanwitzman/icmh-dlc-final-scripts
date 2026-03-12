@@ -36,6 +36,23 @@ PATH_MAP = {os.path.basename(f): f for f in raw_files}
 VIDEOS   = list(PATH_MAP.keys())
 
 
+import glob
+
+def find_existing_output(vid, suffix):
+    """
+    Search `OUTPUT_DIR` for any older batch that already has this file.
+    Always prefer the newest match (by sort order).
+    If none exists, return the path where it *should* go in the current batch.
+    """
+    pattern = f"{OUTPUT_DIR}/*/{suffix.format(vid=vid)}"
+    matches = sorted(glob.glob(pattern))
+    if matches:
+        return matches[-1]
+    return f"{BATCH_DIR}/{suffix.format(vid=vid)}"
+
+POSTPROCESSED_PATHS = [find_existing_output(vid, "postprocessed/{vid}.csv") for vid in VIDEOS]
+STATS_PATHS = [find_existing_output(vid, "qc/{vid}/{vid}_stats.csv") for vid in VIDEOS]
+
 #include: "rules/ingest.smk"
 include: "rules/preprocess.smk"
 include: "rules/resize.smk"
@@ -46,5 +63,5 @@ include: "rules/qc.smk"
 
 rule all:
     input:
-        expand(BATCH_DIR + "/postprocessed/{vid}.csv", vid=VIDEOS),
+        POSTPROCESSED_PATHS,
         BATCH_DIR + "/qc/qc_summary.csv"
