@@ -8,9 +8,9 @@ config_path = Path(__file__).resolve().parent.parent.parent / "configs" / "confi
 with open(config_path) as f:
     config = yaml.safe_load(f)
 
-input_dir = Path(config.get("base_dir", ".")) / config.get("input_dir", "inputs").strip(
-    "../"
-)
+input_dir = Path(config.get("base_dir", ".")) / config.get(
+    "staging_dir", "staging"
+).strip("../")
 output_dir = Path(config.get("base_dir", ".")) / config.get(
     "output_dir_path", "outputs"
 ).strip("../")
