@@ -20,12 +20,12 @@ if batch_id == "auto":
     batch_id = datetime.now().strftime("batch_%Y%m%d_%H%M%S")
 
 batch_dir = output_dir_base / batch_id
-output_dir = batch_dir / "trimmed"
+output_dir = output_dir_base / "trimmed" / batch_id
 ext = config.get("output_container", "mp4").strip(".")
-log_file = batch_dir / "logs" / "batch_trim_log.txt"
+log_file = output_dir_base / "logs" / batch_id / "batch_trim_log.txt"
 
 output_dir.mkdir(parents=True, exist_ok=True)
-(batch_dir / "logs").mkdir(parents=True, exist_ok=True)
+(output_dir_base / "logs" / batch_id).mkdir(parents=True, exist_ok=True)
 
 with open(log_file, "a") as log:
     log.write(f"\n--- Batch Run: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---\n")

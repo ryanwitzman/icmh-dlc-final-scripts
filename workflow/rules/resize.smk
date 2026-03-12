@@ -2,13 +2,13 @@ RESIZE_SCALE = config.get("resize_scale", "iw/2:ih/2")
 
 rule resize_for_dlc:
     input:
-        video=f"{BATCH_DIR}/trimmed/trimmed_{{vid}}.mp4"
+        video=lambda wildcards: find_existing_output(wildcards.vid, "trimmed", "trimmed_{vid}.mp4")
     output:
         video=f"{RESIZED_DIR}/trimmed_{{vid}}.mp4"
     params:
         scale=RESIZE_SCALE
     log:
-        f"{BATCH_DIR}/logs/{{vid}}_resize.log"
+        f"{LOG_DIR}/{{vid}}_resize.log"
     shell:
         """
         ffmpeg -y \

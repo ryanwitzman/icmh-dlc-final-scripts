@@ -1,13 +1,13 @@
 rule dlc_inference:
     input:
-        video=f"{RESIZED_DIR}/trimmed_{{vid}}.mp4",
+        video=lambda wildcards: find_existing_output(wildcards.vid, "trimmed_resized", "trimmed_{vid}.mp4"),
         script="../src/dlc/run_dlc_inference.py"
     output:
-        h5=f"{BATCH_DIR}/dlc_results/{{vid}}_superanimal.h5"
+        h5=f"{OUTPUT_DIR}/dlc_results/{BATCH_ID}/{{vid}}_superanimal.h5"
     log:
-        f"{BATCH_DIR}/logs/{{vid}}_inference.log"
+        f"{LOG_DIR}/{{vid}}_inference.log"
     params:
-        out_dir=f"{BATCH_DIR}/dlc_results",
+        out_dir=f"{OUTPUT_DIR}/dlc_results/{BATCH_ID}",
         model_arg=f"--superanimal {config.get('superanimal_model', 'superanimal_topviewmouse')}"
     shell:
         """

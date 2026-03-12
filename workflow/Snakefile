@@ -18,10 +18,11 @@ _raw_batch  = config.get("batch_id", "auto")
 BATCH_ID    = datetime.now().strftime("batch_%Y%m%d_%H%M%S") if _raw_batch == "auto" else _raw_batch
 
 BATCH_DIR   = f"{OUTPUT_DIR}/{BATCH_ID}"
-RESIZED_DIR = f"{BATCH_DIR}/trimmed_resized"
-LOG_DIR     = f"{STAGING_DIR}/_logs"
-MANIFEST    = f"{LOG_DIR}/{BATCH_ID}_manifest.csv"
-INGEST_FLAG = f"{LOG_DIR}/{BATCH_ID}.ingest.done"
+LOG_DIR     = f"{OUTPUT_DIR}/logs/{BATCH_ID}"
+RESIZED_DIR = f"{OUTPUT_DIR}/trimmed_resized/{BATCH_ID}"
+STAGING_LOG_DIR = f"{STAGING_DIR}/_logs"
+MANIFEST    = f"{STAGING_LOG_DIR}/{BATCH_ID}_manifest.csv"
+INGEST_FLAG = f"{STAGING_LOG_DIR}/{BATCH_ID}.ingest.done"
 
 
 raw_files = []
@@ -38,20 +39,20 @@ VIDEOS   = list(PATH_MAP.keys())
 
 import glob
 
-def find_existing_output(vid, suffix):
+def find_existing_output(vid, rule_folder, filename_template):
     """
     Search `OUTPUT_DIR` for any older batch that already has this file.
     Always prefer the newest match (by sort order).
     If none exists, return the path where it *should* go in the current batch.
     """
-    pattern = f"{OUTPUT_DIR}/*/{suffix.format(vid=vid)}"
+    pattern = f"{OUTPUT_DIR}/{rule_folder}/*/{filename_template.format(vid=vid)}"
     matches = sorted(glob.glob(pattern))
     if matches:
         return matches[-1]
-    return f"{BATCH_DIR}/{suffix.format(vid=vid)}"
+    return f"{OUTPUT_DIR}/{rule_folder}/{BATCH_ID}/{filename_template.format(vid=vid)}"
 
-POSTPROCESSED_PATHS = [find_existing_output(vid, "postprocessed/{vid}.csv") for vid in VIDEOS]
-STATS_PATHS = [find_existing_output(vid, "qc/{vid}/{vid}_stats.csv") for vid in VIDEOS]
+POSTPROCESSED_PATHS = [find_existing_output(vid, "postprocessed", "{vid}.csv") for vid in VIDEOS]
+STATS_PATHS = [find_existing_output(vid, "qc", "{vid}/{vid}_stats.csv") for vid in VIDEOS]
 
 #include: "rules/ingest.smk"
 include: "rules/preprocess.smk"
@@ -63,5 +64,4 @@ include: "rules/qc.smk"
 
 rule all:
     input:
-        POSTPROCESSED_PATHS,
-        BATCH_DIR + "/qc/qc_summary.csv"
+        POSTPROCESSED_PATHS + [f"{OUTPUT_DIR}/qc/{BATCH_ID}/qc_summary.csv"]

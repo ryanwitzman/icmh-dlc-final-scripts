@@ -3,8 +3,8 @@ rule trim_video:
         video    = lambda wildcards: PATH_MAP[wildcards.vid],
         script = "../src/preprocess/trim_video.py"
     output:
-        f"{BATCH_DIR}/trimmed/trimmed_{{vid}}.mp4"
+        f"{OUTPUT_DIR}/trimmed/{BATCH_ID}/trimmed_{{vid}}.mp4"
     log:
-        f"{BATCH_DIR}/logs/{{vid}}_preprocess.log"
+        f"{LOG_DIR}/{{vid}}_preprocess.log"
     script:
         "../../src/preprocess/trim_video.py"

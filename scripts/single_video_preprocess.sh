@@ -21,4 +21,21 @@ if [ -z "$SLURM_JOB_ID" ]; then
 fi
 
 cd "${PROJECT_BASE_DIR}"
-python src/preprocess/trim_video.py --input-file "${PROJECT_BASE_DIR}/staging/CR_D4_3-11-24_SP_RM1.MP4"
+
+BATCH_ID=$(python -c "
+import yaml, os
+from datetime import datetime
+bid = yaml.safe_load(open(os.environ['PROJECT_CONFIG_PATH'])).get('batch_id', 'auto')
+print(datetime.now().strftime('batch_%Y%m%d_%H%M%S') if bid == 'auto' else bid)
+")
+
+INPUT_FILE="${PROJECT_BASE_DIR}/staging/CR_D4_3-11-24_SP_RM1.MP4"
+FILENAME=$(basename -- "$INPUT_FILE")
+STEM="${FILENAME%.*}"
+EXT="${FILENAME##*.}"
+# Convert ext to lowercase mp4 to match python fallbacks
+EXT="mp4" 
+
+OUTPUT_FILE="${PROJECT_BASE_DIR}/outputs/trimmed/${BATCH_ID}/trimmed_${STEM}.${EXT}"
+
+python src/preprocess/trim_video.py --input-file "$INPUT_FILE" --output-file "$OUTPUT_FILE"

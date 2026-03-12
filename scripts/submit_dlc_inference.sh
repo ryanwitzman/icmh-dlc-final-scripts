@@ -34,16 +34,24 @@ print(datetime.now().strftime('batch_%Y%m%d_%H%M%S') if bid == 'auto' else bid)
 echo "Batch ID: ${BATCH_ID}"
 
 BATCH_DIR="${PROJECT_BASE_DIR}/outputs/${BATCH_ID}"
+DLC_RESULTS_DIR="${PROJECT_BASE_DIR}/outputs/dlc_results/${BATCH_ID}"
 
-for video in ${BATCH_DIR}/trimmed_resized/*.mp4; do
+# Use associative array to deduplicate videos, keeping only the latest version (since glob sorts alphabetically)
+declare -A LATEST_VIDEOS
+for video in "${PROJECT_BASE_DIR}/outputs/trimmed_resized/"*/*.mp4; do
+    [ -e "$video" ] || continue
     filename=$(basename -- "$video")
     vid_stem="${filename%.*}"
     stem_no_prefix="${vid_stem#trimmed_}"
+    LATEST_VIDEOS["$stem_no_prefix"]="$video"
+done
 
+for stem in "${!LATEST_VIDEOS[@]}"; do
+    video="${LATEST_VIDEOS[$stem]}"
     echo "Running inference on $video..."
     python src/dlc/run_dlc_inference.py \
         --videos "$video" \
-        --out_dir "${BATCH_DIR}/dlc_results" \
-        --out_h5 "${BATCH_DIR}/dlc_results/${stem_no_prefix}_superanimal.h5" \
+        --out_dir "$DLC_RESULTS_DIR" \
+        --out_h5 "${DLC_RESULTS_DIR}/${stem}_superanimal.h5" \
         --superanimal superanimal_topviewmouse
 done

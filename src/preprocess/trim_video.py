@@ -55,7 +55,7 @@ def parse_and_setup():
             batch_id = config.get("batch_id", "auto")
             if batch_id == "auto":
                 batch_id = datetime.now().strftime("batch_%Y%m%d_%H%M%S")
-            out_dir = out_dir_base / batch_id / "trimmed"
+            out_dir = out_dir_base / "trimmed" / batch_id
             fname = f"trimmed_{Path(input_path).stem}.{ext.strip('.')}"
             output_path = str(out_dir / fname)
     else:

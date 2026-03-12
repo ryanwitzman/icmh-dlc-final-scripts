@@ -1,13 +1,13 @@
 rule postprocess:
     input:
-        h5=f"{BATCH_DIR}/dlc_results/{{vid}}_superanimal.h5",
+        h5=lambda wildcards: find_existing_output(wildcards.vid, "dlc_results", "{vid}_superanimal.h5"),
         script = "../src/postprocess/h5_to_csv.py"
     output:
-        csv=f"{BATCH_DIR}/postprocessed/{{vid}}.csv"
+        csv=f"{OUTPUT_DIR}/postprocessed/{BATCH_ID}/{{vid}}.csv"
     params:
         pcutoff=config.get("pcutoff", 0.6)
     log:
-        f"{BATCH_DIR}/logs/{{vid}}_postprocess.log"
+        f"{LOG_DIR}/{{vid}}_postprocess.log"
     shell:
         """
         python ../src/postprocess/h5_to_csv.py \
