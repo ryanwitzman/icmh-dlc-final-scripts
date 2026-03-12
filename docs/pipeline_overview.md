@@ -37,7 +37,7 @@ Runs DeepLabCut 2.3.11 using the `superanimal_topviewmouse` model. This runs on 
 
 If you don't want to use Snakemake, you can submit the standalone job:
 ```bash
-sbatch scripts/submit_dlc_inference.sh
+bash scripts/submit_dlc_inference.sh
 ```
 This automatically crawls your `outputs/{batch_id}/trimmed_resized` folder and runs inference on every video it finds, dropping the results into `outputs/{batch_id}/dlc_results/`.
 

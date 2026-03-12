@@ -13,7 +13,13 @@ def main():
     with open(config_path) as f:
         config = yaml.safe_load(f)
 
-    base = Path(config.get("base_dir", "."))
+    project_root = config_path.parent.parent
+    base_dir = config.get("base_dir", ".")
+
+    # If base_dir is absolute, Path will use it directly.
+    # If relative, it anchors it to project_root.
+    base = (project_root / base_dir).resolve()
+
     search_dirs = [
         ("staging", base / Path(config.get("staging_dir", "staging")).name),
         ("input", base / Path(config.get("input_dir", "inputs")).name),

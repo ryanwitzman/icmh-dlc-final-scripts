@@ -20,7 +20,7 @@ Docs:
 3. Put your raw `.mp4` videos in `staging/` (if not using the ingest script).
 4. Run it:
    ```bash
-   sbatch scripts/submit_workflow.sh
+   bash scripts/submit_workflow.sh
    ```
 
 Note: The resize rule needs FFmpeg 6.1 to work right.
