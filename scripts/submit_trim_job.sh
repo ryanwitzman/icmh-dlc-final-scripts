@@ -4,7 +4,7 @@ if [ -z "$SLURM_JOB_ID" ]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
     ROOT_DIR="$(dirname "$SCRIPT_DIR")"
     export PROJECT_CONFIG_PATH="$ROOT_DIR/configs/config.yaml"
-    export PROJECT_BASE_DIR=$(python -c "import yaml; print(yaml.safe_load(open('${PROJECT_CONFIG_PATH}'))['base_dir'])")
+    export PROJECT_BASE_DIR=$(python -c "import yaml, os; print(os.path.abspath(os.path.join('${ROOT_DIR}', yaml.safe_load(open('${PROJECT_CONFIG_PATH}'))['base_dir'])))")
     
     echo "Submitting trim_videos job to SLURM with logs at ${PROJECT_BASE_DIR}/logs/"
     sbatch \
