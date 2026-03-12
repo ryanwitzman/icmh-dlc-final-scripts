@@ -48,6 +48,14 @@ done
 
 for stem in "${!LATEST_VIDEOS[@]}"; do
     video="${LATEST_VIDEOS[$stem]}"
+    
+    # Check if inference output already exists for this video
+    EXISTING_H5=$(ls "${PROJECT_BASE_DIR}/outputs/dlc_results/"*/"${stem}_superanimal.h5" 2>/dev/null | head -n 1)
+    if [ -n "$EXISTING_H5" ] && [ -e "$EXISTING_H5" ]; then
+        echo "Inference already exists for $video (found at $EXISTING_H5). Skipping."
+        continue
+    fi
+
     echo "Running inference on $video..."
     python src/dlc/run_dlc_inference.py \
         --videos "$video" \

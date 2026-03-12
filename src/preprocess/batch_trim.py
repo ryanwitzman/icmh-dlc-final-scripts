@@ -1,6 +1,7 @@
 import subprocess
 import time
 import yaml
+import glob
 from pathlib import Path
 from datetime import datetime
 
@@ -32,6 +33,20 @@ with open(log_file, "a") as log:
 
     videos = list(input_dir.rglob("*.mp4")) + list(input_dir.rglob("*.MP4"))
     for video in videos:
+        # Check if already processed
+        existing = glob.glob(
+            str(output_dir_base / "trimmed" / "*" / f"trimmed_{video.stem}.{ext}")
+        )
+        if existing:
+            status = f"SKIPPED | previously processed at {existing[0]}"
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            src_size_mb = video.stat().st_size / 1e6
+            log.write(
+                f"[{timestamp}] {video.name} (src={src_size_mb:.1f}MB): {status}\n"
+            )
+            print(f"{video.name}: {status}")
+            continue
+
         print(f"Processing {video.name}...")
         t0 = time.time()
         trim_script = str(Path(__file__).resolve().parent / "trim_video.py")

@@ -62,6 +62,8 @@ include: "rules/postprocess.smk"
 include: "rules/qc.smk"
 
 
+ALL_INPUTS = POSTPROCESSED_PATHS + [f"{OUTPUT_DIR}/qc/{BATCH_ID}/qc_summary.csv"]
+
 rule all:
     input:
-        POSTPROCESSED_PATHS + [f"{OUTPUT_DIR}/qc/{BATCH_ID}/qc_summary.csv"]
+        all_targets=ALL_INPUTS
