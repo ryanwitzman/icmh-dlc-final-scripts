@@ -12,7 +12,7 @@ if [ -z "$SLURM_JOB_ID" ]; then
         --output="${PROJECT_BASE_DIR}/logs/trim_videos_%j.out" \
         --error="${PROJECT_BASE_DIR}/logs/trim_videos_%j.err" \
         --time=00:30:00 \
-        --partition=gpu \
+        --partition=gpu-interactive \
         --ntasks=1 \
         --cpus-per-task=1 \
         --mem=16G \

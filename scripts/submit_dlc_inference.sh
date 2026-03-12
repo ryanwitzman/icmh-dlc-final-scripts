@@ -12,7 +12,7 @@ if [ -z "$SLURM_JOB_ID" ]; then
         --output="${PROJECT_BASE_DIR}/logs/dlc_inference_%j.out" \
         --error="${PROJECT_BASE_DIR}/logs/dlc_inference_%j.err" \
         --time=01:00:00 \
-        --partition=gpu \
+        --partition=gpu-interactive \
         --gpus=1 \
         --mem=16G \
         --account=r01704 \
