@@ -23,7 +23,8 @@ output_dir.mkdir(parents=True, exist_ok=True)
 with open(log_file, "a") as log:
     log.write(f"\n--- Batch Run: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---\n")
 
-    for video in input_dir.rglob("*.mp4"):
+    videos = list(input_dir.rglob("*.mp4")) + list(input_dir.rglob("*.MP4"))
+    for video in videos:
         print(f"Processing {video.name}...")
         t0 = time.time()
         trim_script = str(Path(__file__).resolve().parent / "trim_video.py")

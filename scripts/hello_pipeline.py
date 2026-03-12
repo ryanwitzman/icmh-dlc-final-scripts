@@ -31,7 +31,7 @@ def main():
             print(f"  [{label}] directory '{folder}' does not exist yet.")
             continue
 
-        videos = list(folder.rglob("*.mp4"))
+        videos = list(folder.rglob("*.mp4")) + list(folder.rglob("*.MP4"))
         if not videos:
             print(f"  [{label}] No .mp4 files found in '{folder}'.")
             continue
