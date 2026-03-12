@@ -1,12 +1,16 @@
 #!/bin/bash
+
 if [ -z "$SLURM_JOB_ID" ]; then
-    BASE_DIR=$(python -c "import yaml; print(yaml.safe_load(open('configs/config.yaml'))['base_dir'])")
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+    ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+    export PROJECT_CONFIG_PATH="$ROOT_DIR/configs/config.yaml"
+    export PROJECT_BASE_DIR=$(python -c "import yaml; print(yaml.safe_load(open('${PROJECT_CONFIG_PATH}'))['base_dir'])")
     
-    echo "Submitting snakemake_master job to SLURM with logs at ${BASE_DIR}/logs/"
+    echo "Submitting snakemake_master job to SLURM with logs at ${PROJECT_BASE_DIR}/logs/"
     sbatch \
         --job-name=snakemake_master \
-        --output="${BASE_DIR}/logs/snakemake_master_%j.out" \
-        --error="${BASE_DIR}/logs/snakemake_master_%j.err" \
+        --output="${PROJECT_BASE_DIR}/logs/snakemake_master_%j.out" \
+        --error="${PROJECT_BASE_DIR}/logs/snakemake_master_%j.err" \
         --time=02:00:00 \
         --partition=general \
         --ntasks=1 \
@@ -17,15 +21,13 @@ if [ -z "$SLURM_JOB_ID" ]; then
     exit $?
 fi
 
-BASE_DIR=$(python -c "import yaml; print(yaml.safe_load(open('configs/config.yaml'))['base_dir'])")
-
-exec > ${BASE_DIR}/workflow/master_debug.log 2>&1
+exec > ${PROJECT_BASE_DIR}/workflow/master_debug.log 2>&1
 set -x
 
 module load conda/25.3.0
 source activate icmh-dlc-310
 
-cd ${BASE_DIR}/workflow
+cd ${PROJECT_BASE_DIR}/workflow
 snakemake --unlock
 
 mkdir -p logs

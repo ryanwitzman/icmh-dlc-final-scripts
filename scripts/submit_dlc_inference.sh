@@ -1,12 +1,16 @@
 #!/bin/bash
+
 if [ -z "$SLURM_JOB_ID" ]; then
-    BASE_DIR=$(python -c "import yaml; print(yaml.safe_load(open('configs/config.yaml'))['base_dir'])")
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+    ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+    export PROJECT_CONFIG_PATH="$ROOT_DIR/configs/config.yaml"
+    export PROJECT_BASE_DIR=$(python -c "import yaml; print(yaml.safe_load(open('${PROJECT_CONFIG_PATH}'))['base_dir'])")
     
-    echo "Submitting dlc_inference job to SLURM with logs at ${BASE_DIR}/logs/"
+    echo "Submitting dlc_inference job to SLURM with logs at ${PROJECT_BASE_DIR}/logs/"
     sbatch \
         --job-name=dlc_inference \
-        --output="${BASE_DIR}/logs/dlc_inference_%j.out" \
-        --error="${BASE_DIR}/logs/dlc_inference_%j.err" \
+        --output="${PROJECT_BASE_DIR}/logs/dlc_inference_%j.out" \
+        --error="${PROJECT_BASE_DIR}/logs/dlc_inference_%j.err" \
         --time=01:00:00 \
         --partition=gpu \
         --gpus=1 \
@@ -19,18 +23,17 @@ fi
 module load conda/25.3.0
 source activate icmh-dlc-310
 
-BASE_DIR=$(python -c "import yaml; print(yaml.safe_load(open('configs/config.yaml'))['base_dir'])")
-cd ${BASE_DIR}
+cd "${PROJECT_BASE_DIR}"
 
 BATCH_ID=$(python -c "
 import yaml
 from datetime import datetime
-bid = yaml.safe_load(open('configs/config.yaml')).get('batch_id', 'auto')
+bid = yaml.safe_load(open(os.environ['PROJECT_CONFIG_PATH'])).get('batch_id', 'auto')
 print(datetime.now().strftime('batch_%Y%m%d_%H%M%S') if bid == 'auto' else bid)
 ")
 echo "Batch ID: ${BATCH_ID}"
 
-BATCH_DIR="${BASE_DIR}/outputs/${BATCH_ID}"
+BATCH_DIR="${PROJECT_BASE_DIR}/outputs/${BATCH_ID}"
 
 for video in ${BATCH_DIR}/trimmed_resized/*.mp4; do
     filename=$(basename -- "$video")

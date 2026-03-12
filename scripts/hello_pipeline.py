@@ -5,11 +5,9 @@ from pathlib import Path
 def main():
     print("Hello pipeline! Checking for raw videos...\n")
 
-    config_path = Path("configs/config.yaml")
+    config_path = Path(__file__).resolve().parent.parent / "configs" / "config.yaml"
     if not config_path.exists():
-        print(
-            "Couldn't find config.yaml. Make sure you are running this from the project root."
-        )
+        print(f"Couldn't find config.yaml at {config_path}.")
         return
 
     with open(config_path) as f:

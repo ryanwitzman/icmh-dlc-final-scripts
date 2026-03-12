@@ -1,4 +1,4 @@
-base_dir: "/N/project/msk_dl/icmh-dlc-final-scripts"
+base_dir: "."
 trim_start_seconds: 60
 fps: 30
 trim_duration_seconds: 300
