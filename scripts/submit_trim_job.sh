@@ -14,12 +14,15 @@ if [ -z "$SLURM_JOB_ID" ]; then
         --time=00:30:00 \
         --partition=gpu-interactive \
         --ntasks=1 \
-        --cpus-per-task=1 \
+        --cpus-per-task=4 \
         --mem=16G \
         --account=r01704 \
         "$0" "$@"
     exit $?
 fi
+
+exec > ${PROJECT_BASE_DIR}/workflow/master_debug.log 2>&1
+set -x
 
 module load conda/25.3.0
 source activate icmh-dlc-310
