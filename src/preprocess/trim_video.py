@@ -51,7 +51,11 @@ def parse_and_setup():
         if args.output_file:
             output_path = str(Path(args.output_file))
         else:
-            out_dir = Path(config.get("output_dir_path", "outputs"))
+            out_dir_base = Path(config.get("output_dir_path", "outputs"))
+            batch_id = config.get("batch_id", "auto")
+            if batch_id == "auto":
+                batch_id = datetime.now().strftime("batch_%Y%m%d_%H%M%S")
+            out_dir = out_dir_base / batch_id / "trimmed"
             fname = f"trimmed_{Path(input_path).stem}.{ext.strip('.')}"
             output_path = str(out_dir / fname)
     else:

@@ -2,7 +2,7 @@ RESIZE_SCALE = config.get("resize_scale", "iw/2:ih/2")
 
 rule resize_for_dlc:
     input:
-        video=f"{BATCH_DIR}/trimmed_{{vid}}.mp4"
+        video=f"{BATCH_DIR}/trimmed/trimmed_{{vid}}.mp4"
     output:
         video=f"{RESIZED_DIR}/trimmed_{{vid}}.mp4"
     params:

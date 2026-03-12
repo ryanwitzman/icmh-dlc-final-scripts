@@ -20,14 +20,14 @@ Trims the first 60 seconds off so we skip the setup time, and keeps 300 seconds 
 If you want to run this outside of Snakemake, you can just run `python src/preprocess/batch_trim.py` to loop through all the `.mp4` files in the input folder and trim them all at once. It drops a quick run log in `outputs/batch_trim_log.txt` so you can see if anything failed.
 
 **Expected Inputs:** Raw video `staging/{vid}.mp4` (or `inputs/` for the batch script)
-**Expected Outputs:** `outputs/{batch_id}/trimmed_{vid}.mp4`
-**Logs:** `outputs/{batch_id}/logs/{vid}_preprocess.log` (and `outputs/batch_trim_log.txt`)
+**Expected Outputs:** `outputs/{batch_id}/trimmed/trimmed_{vid}.mp4`
+**Logs:** `outputs/{batch_id}/logs/{vid}_preprocess.log` (and `outputs/{batch_id}/logs/batch_trim_log.txt`)
 
 ## 3. Resize
 Rule: `resize.smk`
 Scales the video down by half (`iw/2:ih/2`), encodes with `libx264`, and forces a constant frame rate of 30fps so audio/video sync doesn't break. You need FFmpeg 6.1 for this.
 
-**Expected Inputs:** Trimmed video `outputs/{batch_id}/trimmed_{vid}.mp4`
+**Expected Inputs:** Trimmed video `outputs/{batch_id}/trimmed/trimmed_{vid}.mp4`
 **Expected Outputs:** Downscaled video `outputs/{batch_id}/trimmed_resized/trimmed_{vid}.mp4`
 **Logs:** `outputs/{batch_id}/logs/{vid}_resize.log`
 

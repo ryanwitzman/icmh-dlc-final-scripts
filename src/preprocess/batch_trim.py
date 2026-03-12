@@ -11,14 +11,21 @@ with open(config_path) as f:
 input_dir = Path(config.get("base_dir", ".")) / config.get(
     "staging_dir", "staging"
 ).strip("../")
-output_dir = Path(config.get("base_dir", ".")) / config.get(
+output_dir_base = Path(config.get("base_dir", ".")) / config.get(
     "output_dir_path", "outputs"
 ).strip("../")
+
+batch_id = config.get("batch_id", "auto")
+if batch_id == "auto":
+    batch_id = datetime.now().strftime("batch_%Y%m%d_%H%M%S")
+
+batch_dir = output_dir_base / batch_id
+output_dir = batch_dir / "trimmed"
 ext = config.get("output_container", "mp4").strip(".")
-log_file = output_dir / "logs" / "batch_trim_log.txt"
+log_file = batch_dir / "logs" / "batch_trim_log.txt"
 
 output_dir.mkdir(parents=True, exist_ok=True)
-(output_dir / "logs").mkdir(parents=True, exist_ok=True)
+(batch_dir / "logs").mkdir(parents=True, exist_ok=True)
 
 with open(log_file, "a") as log:
     log.write(f"\n--- Batch Run: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---\n")
