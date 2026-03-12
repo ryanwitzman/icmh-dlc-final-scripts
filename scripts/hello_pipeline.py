@@ -15,9 +15,10 @@ def main():
     with open(config_path) as f:
         config = yaml.safe_load(f)
 
+    base = Path(config.get("base_dir", "."))
     search_dirs = [
-        ("staging", Path(config.get("staging_dir", "staging"))),
-        ("input", Path(config.get("input_dir", "inputs"))),
+        ("staging", base / Path(config.get("staging_dir", "staging")).name),
+        ("input", base / Path(config.get("input_dir", "inputs")).name),
     ]
 
     total = 0

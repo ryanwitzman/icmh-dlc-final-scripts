@@ -63,9 +63,9 @@ cat logs/slurm_*.out
 ```
 
 ### 2. Snakemake Pipeline Logs (Individual Rules)
-If you run the full Snakemake workflow, every individual step (resize, inference, qc, etc.) generates its own dedicated log file so you can debug exactly which video failed. These are saved in `outputs/logs/` and are named by the video and the rule.
+If you run the full Snakemake workflow, every individual step (resize, inference, qc, etc.) generates its own dedicated log file so you can debug exactly which video failed. These are saved in `outputs/{batch_id}/logs/` and are named by the video and the rule.
 
 For example, to check the inference log for a specific video:
 ```bash
-cat outputs/logs/CR_D4_3-11-24_SP_RM1_inference.log
+cat outputs/{batch_id}/logs/CR_D4_3-11-24_SP_RM1_inference.log
 ```

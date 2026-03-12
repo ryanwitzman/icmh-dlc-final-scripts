@@ -1,15 +1,23 @@
 #!/bin/bash
-#SBATCH --job-name=snakemake_master
-BASE_DIR=$(python -c "import yaml; print(yaml.safe_load(open('configs/config.yaml'))['base_dir'])")
+if [ -z "$SLURM_JOB_ID" ]; then
+    BASE_DIR=$(python -c "import yaml; print(yaml.safe_load(open('configs/config.yaml'))['base_dir'])")
+    
+    echo "Submitting snakemake_master job to SLURM with logs at ${BASE_DIR}/logs/"
+    sbatch \
+        --job-name=snakemake_master \
+        --output="${BASE_DIR}/logs/snakemake_master_%j.out" \
+        --error="${BASE_DIR}/logs/snakemake_master_%j.err" \
+        --time=02:00:00 \
+        --partition=general \
+        --ntasks=1 \
+        --cpus-per-task=1 \
+        --mem=4G \
+        --account=r01704 \
+        "$0" "$@"
+    exit $?
+fi
 
-#SBATCH --output=${BASE_DIR}/logs/snakemake_master_%j.out
-#SBATCH --error=${BASE_DIR}/logs/snakemake_master_%j.err
-#SBATCH --time=01:00:00
-#SBATCH --partition=general
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
-#SBATCH --mem=2G
-#SBATCH --account=r01704
+BASE_DIR=$(python -c "import yaml; print(yaml.safe_load(open('configs/config.yaml'))['base_dir'])")
 
 exec > ${BASE_DIR}/workflow/master_debug.log 2>&1
 set -x

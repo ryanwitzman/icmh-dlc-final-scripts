@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 
 configfile: "../configs/config.yaml"
@@ -12,10 +13,12 @@ config["client_secret"] = os.getenv("CLIENT_SECRET")
 INPUT_DIR   = config.get("input_dir",   "../inputs")
 STAGING_DIR = config.get("staging_dir", "../staging")
 OUTPUT_DIR  = config.get("output_dir",  "../outputs")
-RESIZED_DIR = f"{OUTPUT_DIR}/trimmed_resized"
 
+_raw_batch  = config.get("batch_id", "auto")
+BATCH_ID    = datetime.now().strftime("batch_%Y%m%d_%H%M%S") if _raw_batch == "auto" else _raw_batch
 
-BATCH_ID    = config.get("batch_id", "batch_001")
+BATCH_DIR   = f"{OUTPUT_DIR}/{BATCH_ID}"
+RESIZED_DIR = f"{BATCH_DIR}/trimmed_resized"
 LOG_DIR     = f"{STAGING_DIR}/_logs"
 MANIFEST    = f"{LOG_DIR}/{BATCH_ID}_manifest.csv"
 INGEST_FLAG = f"{LOG_DIR}/{BATCH_ID}.ingest.done"
@@ -43,5 +46,5 @@ include: "rules/qc.smk"
 
 rule all:
     input:
-        expand(OUTPUT_DIR + "/postprocessed/{vid}.csv", vid=VIDEOS),
-        OUTPUT_DIR + "/qc_summary.csv"
+        expand(BATCH_DIR + "/postprocessed/{vid}.csv", vid=VIDEOS),
+        BATCH_DIR + "/qc/qc_summary.csv"

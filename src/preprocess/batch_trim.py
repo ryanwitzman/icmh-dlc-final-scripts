@@ -4,7 +4,8 @@ import yaml
 from pathlib import Path
 from datetime import datetime
 
-with open("configs/config.yaml") as f:
+config_path = Path(__file__).resolve().parent.parent.parent / "configs" / "config.yaml"
+with open(config_path) as f:
     config = yaml.safe_load(f)
 
 input_dir = Path(config.get("base_dir", ".")) / config.get("input_dir", "inputs").strip(
@@ -25,8 +26,9 @@ with open(log_file, "a") as log:
     for video in input_dir.rglob("*.mp4"):
         print(f"Processing {video.name}...")
         t0 = time.time()
+        trim_script = str(Path(__file__).resolve().parent / "trim_video.py")
         result = subprocess.run(
-            ["python", "src/preprocess/trim_video.py", "--input-file", str(video)],
+            ["python", trim_script, "--input-file", str(video)],
             capture_output=True,
             text=True,
         )

@@ -3,18 +3,18 @@ import os
 
 rule quality_control:
     input:
-        csv = OUTPUT_DIR + "/postprocessed/{vid}.csv",
+        csv = BATCH_DIR + "/postprocessed/{vid}.csv",
         script = "../src/qc/qc_analytics.py"
     output:
-        traj    = OUTPUT_DIR + "/qc/{vid}/{vid}_trajectory.png",
-        heatmap = OUTPUT_DIR + "/qc/{vid}/{vid}_heatmap.png",
-        speed   = OUTPUT_DIR + "/qc/{vid}/{vid}_speed.png",
-        stats   = OUTPUT_DIR + "/qc/{vid}/{vid}_stats.csv"
+        traj    = BATCH_DIR + "/qc/{vid}/{vid}_trajectory.png",
+        heatmap = BATCH_DIR + "/qc/{vid}/{vid}_heatmap.png",
+        speed   = BATCH_DIR + "/qc/{vid}/{vid}_speed.png",
+        stats   = BATCH_DIR + "/qc/{vid}/{vid}_stats.csv"
     params:
-        outdir   = OUTPUT_DIR + "/qc/{vid}/",
+        outdir   = BATCH_DIR + "/qc/{vid}/",
         vid_name = "{vid}"
     log:
-        f"{OUTPUT_DIR}/logs/{{vid}}_qc.log"
+        BATCH_DIR + "/logs/{vid}_qc.log"
     shell:
         """
         python {input.script} \
@@ -26,9 +26,9 @@ rule quality_control:
 
 rule aggregate_qc:
     input:
-        stats = expand(OUTPUT_DIR + "/qc/{vid}/{vid}_stats.csv", vid=VIDEOS)
+        stats = expand(BATCH_DIR + "/qc/{vid}/{vid}_stats.csv", vid=VIDEOS)
     output:
-        summary = OUTPUT_DIR + "/qc_summary.csv"
+        summary = BATCH_DIR + "/qc/qc_summary.csv"
     run:
         df_list = [pd.read_csv(f) for f in input.stats]
         if df_list:
