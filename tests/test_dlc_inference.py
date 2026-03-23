@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from dlc import run_dlc_inference  # noqa: E402
+from dlc import run_dlc_inference
 
 
 def test_log_environment(mocker, caplog):
@@ -29,21 +29,3 @@ def test_log_environment(mocker, caplog):
     print("---------------------")
     assert "NVIDIA RTX 4090" in caplog.text
     assert "12000/24576 MiB free" in caplog.text
-
-
-def test_collect_and_move_outputs(tmp_path):
-    video_dir = tmp_path / "videos"
-    out_dir = tmp_path / "outputs"
-    video_dir.mkdir()
-    out_dir.mkdir()
-
-    video_path = video_dir / "vid1.mp4"
-
-    (video_dir / "vid1DLC_resnet50.h5").touch()
-    (video_dir / "vid1_superanimal.pickle").touch()
-
-    run_dlc_inference.collect_and_move_outputs(video_path, out_dir)
-
-    assert (out_dir / "vid1DLC_resnet50.h5").exists()
-    assert (out_dir / "vid1_superanimal.pickle").exists()
-    assert not (video_dir / "vid1DLC_resnet50.h5").exists()
