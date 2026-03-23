@@ -7,14 +7,16 @@ TIME=$5
 GPUS=$6
 JOBSCRIPT=$7
 
+BASE_DIR=$(python3 -c "import yaml; print(yaml.safe_load(open('../configs/config.yaml'))['base_dir'])")
+
 SBATCH_ARGS=(
   --partition="$PARTITION"
   --account="$ACCOUNT"
   --cpus-per-task="$CPUS"
   --mem="$MEM"
   --time="$TIME"
-  --output="logs/slurm_%j.out"
-  --error="logs/slurm_%j.err"
+  --output="${BASE_DIR}/logs/slurm_%j.out"
+  --error="${BASE_DIR}/logs/slurm_%j.err"
   --export=ALL
 )
 

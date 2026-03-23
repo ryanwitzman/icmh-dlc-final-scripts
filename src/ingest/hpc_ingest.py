@@ -14,7 +14,7 @@ import requests
 from tqdm import tqdm
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0"
-CHUNK_SIZE = 8 * 1024 * 1024  # 8 MB download chunks
+CHUNK_SIZE = 8 * 1024 * 1024
 SCOPES = [
     "https://graph.microsoft.com/Sites.Read.All",
     "https://graph.microsoft.com/Files.Read.All",
@@ -34,6 +34,7 @@ LOG_COLUMNS = [
     "notes",
 ]
 
+
 def setup_logging(log_dir: Path, batch_id: str) -> logging.Logger:
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_dir / f"{batch_id}_run.log"
@@ -48,8 +49,8 @@ def setup_logging(log_dir: Path, batch_id: str) -> logging.Logger:
     )
     return logging.getLogger("hpc_ingest")
 
-def get_access_token(tenant_id: str, client_id: str) -> str:
 
+def get_access_token(tenant_id: str, client_id: str) -> str:
     cache = msal.SerializableTokenCache()
     if os.path.exists(TOKEN_CACHE):
         cache.deserialize(open(TOKEN_CACHE).read())
@@ -65,11 +66,10 @@ def get_access_token(tenant_id: str, client_id: str) -> str:
     result = app.acquire_token_silent(SCOPES, account=accounts[0]) if accounts else None
 
     if not result:
-
         flow = app.initiate_device_flow(scopes=SCOPES)
         if "user_code" not in flow:
             raise RuntimeError(f"Device flow failed: {flow.get('error_description')}")
-        print("\n" + flow["message"])  # prints the URL + code for the user
+        print("\n" + flow["message"])
         print()
         result = app.acquire_token_by_device_flow(flow)
 
@@ -81,6 +81,7 @@ def get_access_token(tenant_id: str, client_id: str) -> str:
             f.write(cache.serialize())
 
     return result["access_token"]
+
 
 def graph_get(token: str, url: str) -> dict:
     headers = {"Authorization": f"Bearer {token}"}
@@ -95,13 +96,13 @@ def graph_get(token: str, url: str) -> dict:
         return r.json()
     raise RuntimeError(f"Failed after retries: {url}")
 
-def resolve_drive_and_item(token: str, sharepoint_url: str, remote_path: str):
 
+def resolve_drive_and_item(token: str, sharepoint_url: str, remote_path: str):
     from urllib.parse import urlparse
 
     parsed = urlparse(sharepoint_url)
-    host = parsed.netloc  # contoso.sharepoint.com
-    sp_path = parsed.path.rstrip("/")  # /sites/MyTeam
+    host = parsed.netloc
+    sp_path = parsed.path.rstrip("/")
 
     site_url = f"{GRAPH_BASE}/sites/{host}:{sp_path}"
     site_data = graph_get(token, site_url)
@@ -117,6 +118,7 @@ def resolve_drive_and_item(token: str, sharepoint_url: str, remote_path: str):
     item_id = item_data["id"]
 
     return drive_id, item_id
+
 
 def walk_mp4s(token: str, drive_id: str, item_id: str, logger: logging.Logger):
     url = f"{GRAPH_BASE}/drives/{drive_id}/items/{item_id}/children"
@@ -138,7 +140,8 @@ def walk_mp4s(token: str, drive_id: str, item_id: str, logger: logging.Logger):
                     "quickXorHash": fh.get("quickXorHash", ""),
                     "sha256remote": fh.get("sha256Hash", "").lower(),
                 }
-        url = data.get("@odata.nextLink")  # pagination
+        url = data.get("@odata.nextLink")
+
 
 def sha256_file(path: Path) -> str:
     h = hashlib.sha256()
@@ -147,8 +150,10 @@ def sha256_file(path: Path) -> str:
             h.update(chunk)
     return h.hexdigest()
 
+
 def validate_size(path: Path, expected: int) -> bool:
     return path.stat().st_size == expected
+
 
 def download_file(url: str, dest: Path, size: int, logger: logging.Logger) -> float:
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -166,6 +171,7 @@ def download_file(url: str, dest: Path, size: int, logger: logging.Logger) -> fl
                 f.write(chunk)
                 bar.update(len(chunk))
     return time.time() - t0
+
 
 class BatchLog:
     def __init__(self, path: Path):
@@ -188,6 +194,7 @@ class BatchLog:
         failed = total - ok
         sizes = sum(int(r["size_bytes"] or 0) for r in self._rows)
         return {"total": total, "ok": ok, "failed": failed, "total_bytes": sizes}
+
 
 def main():
     parser = argparse.ArgumentParser(description="HPC SharePoint video ingest")
@@ -318,6 +325,6 @@ def main():
 
     sys.exit(0 if s["failed"] == 0 else 1)
 
+
 if __name__ == "__main__":
     main()
-

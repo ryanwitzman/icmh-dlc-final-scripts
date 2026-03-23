@@ -1,13 +1,15 @@
+base_dir: "/N/project/msk_dl/icmh-dlc-final-scripts"
 trim_start_seconds: 60
 fps: 30
 trim_duration_seconds: 300
 output_codec: libx264
+output_container: mp4
 frame_rate_handling_policy: CFR
 output_dir_path: outputs/
 staging_dir:     "../staging"
 input_dir:       "../inputs"
 output_dir:      "../outputs"
-batch_id:        "batch_001"
+batch_id:        "auto"
 sharepoint_url: "https://indiana.sharepoint.com/sites/msteams_9c5cec-KacenaLabAllResearch"
 remote_path: "Shared Documents/Kacena Lab All Research/Behavior Videos/Behavior Videos/RM1 Study 2023"
 dlc_version: "2.3.11"

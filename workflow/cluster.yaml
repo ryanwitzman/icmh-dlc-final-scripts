@@ -2,7 +2,7 @@ __default__:
   partition: general
   account: r01704
   cpus: 1
-  mem: 2G
+  mem: 4G
   time: "01:30:00"
   gpus: 0
 
@@ -53,4 +53,3 @@ aggregate_qc:
   mem: 2G
   time: "00:10:00"
   gpus: 0
-
