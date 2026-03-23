@@ -64,15 +64,10 @@ declare -A PENDING_VIDEOS
 # 1. Grab all valid videos
 while IFS= read -r -d '' video; do
     filename=$(basename -- "$video")
-    
-    if [[ "$filename" == *labeled.mp4 ]]; then
-        continue
-    fi
-
     vid_stem="${filename%.*}"
     stem_no_prefix="${vid_stem#trimmed_}"
     ALL_VIDEOS["$stem_no_prefix"]="$video"
-done < <(find "${PROJECT_BASE_DIR}/outputs/resized/" -type f -name "*.mp4" ! -name "*labeled.mp4" -print0)
+done < <(find "${PROJECT_BASE_DIR}/outputs/resized/" -type f -name "*.mp4" -print0)
 
 echo "Found ${#ALL_VIDEOS[@]} total video(s) in resized folder."
 
@@ -80,7 +75,6 @@ echo "Found ${#ALL_VIDEOS[@]} total video(s) in resized folder."
 for stem in "${!ALL_VIDEOS[@]}"; do
     video="${ALL_VIDEOS[$stem]}"
     
-    # Using ls with globbing bypasses Lustre metadata caching issues
     EXISTING_H5=$(ls "${PROJECT_BASE_DIR}/outputs/dlc_results/"*/"${stem}_superanimal.h5" 2>/dev/null | head -n 1 || true)
     
     if [ -n "$EXISTING_H5" ] && [ -f "$EXISTING_H5" ]; then

@@ -26,7 +26,7 @@ set -x
 
 module load conda/25.3.0
 source activate icmh-dlc-310
-
+export BATCH_ID=$(date +"batch_%Y%m%d_%H%M%S")
 cd ${PROJECT_BASE_DIR}/workflow
 snakemake --unlock
 
@@ -40,4 +40,5 @@ snakemake \
   --conda-prefix /N/project/msk_dl/conda-envs \
   --latency-wait 120 \
   --rerun-incomplete \
-  --printshellcmds
+  --printshellcmds \
+  --config batch_id=$BATCH_ID
