@@ -4,6 +4,7 @@ import numpy as np
 import os
 import argparse
 
+
 def run_qc(input_csv, output_folder, video_name, stats_out):
     df = pd.read_csv(input_csv)
     os.makedirs(output_folder, exist_ok=True)
@@ -35,7 +36,6 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
     }
 
     if target_x in df.columns and target_y in df.columns:
-
         plt.figure(figsize=(8, 6))
         plt.plot(df[target_x], df[target_y], color="blue", alpha=0.5, lw=1)
         plt.title(f"Trajectory: {video_name}")
@@ -72,6 +72,7 @@ def run_qc(input_csv, output_folder, video_name, stats_out):
     summary_df.to_csv(stats_out, index=False)
     print(f"[QC] Wrote stats for '{video_name}' → {stats_out}")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True)
@@ -81,4 +82,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run_qc(args.input, args.outdir, args.vid, args.stats_out)
-

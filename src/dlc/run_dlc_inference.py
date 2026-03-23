@@ -9,7 +9,6 @@ import time
 from pathlib import Path
 
 
-
 class FlushingStreamHandler(logging.StreamHandler):
     def emit(self, record):
         super().emit(record)
@@ -17,7 +16,6 @@ class FlushingStreamHandler(logging.StreamHandler):
 
 
 def setup_logging() -> None:
-
     fmt = logging.Formatter(
         fmt="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
@@ -36,11 +34,11 @@ def setup_logging() -> None:
 logger = logging.getLogger(__name__)
 
 
-
 def log_environment() -> None:
     logger.info("Gathering environment and GPU allocation data...")
     try:
         import deeplabcut
+
         dlc_version = getattr(deeplabcut, "__version__", "unknown")
     except ImportError:
         dlc_version = "NOT INSTALLED"
@@ -54,10 +52,13 @@ def log_environment() -> None:
         try:
             r = subprocess.run(
                 [sys.executable, "-m", "pip", "show", "deeplabcut"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             install_method = (
-                f"Pip (env: {prefix})" if r.returncode == 0
+                f"Pip (env: {prefix})"
+                if r.returncode == 0
                 else f"Unknown (env: {prefix})"
             )
         except Exception:
@@ -67,14 +68,20 @@ def log_environment() -> None:
     gpu_lines = [f"CUDA_VISIBLE_DEVICES={cuda_vis}"]
     try:
         r = subprocess.run(
-            ["nvidia-smi",
-             "--query-gpu=index,name,memory.total,memory.free,utilization.gpu",
-             "--format=csv,noheader,nounits"],
-            capture_output=True, text=True, timeout=15,
+            [
+                "nvidia-smi",
+                "--query-gpu=index,name,memory.total,memory.free,utilization.gpu",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         if r.returncode == 0:
             for row in r.stdout.strip().splitlines():
-                idx, name, mem_total, mem_free, util = [c.strip() for c in row.split(",")]
+                idx, name, mem_total, mem_free, util = [
+                    c.strip() for c in row.split(",")
+                ]
                 gpu_lines.append(
                     f"  GPU {idx}: {name} | mem {mem_free}/{mem_total} MiB free | util {util}%"
                 )
@@ -95,7 +102,6 @@ def log_environment() -> None:
     logger.info("=" * 60)
 
 
-
 def run_dlc_inference_subprocess(
     videos: list[Path],
     out_dir: Path,
@@ -104,15 +110,19 @@ def run_dlc_inference_subprocess(
     video_adapt: bool,
     out_h5: Path | None,
 ) -> None:
-
     cmd = [
-        sys.executable, "-u",                                         
+        sys.executable,
+        "-u",
         __file__,
-        "--_subprocess",                                                        
-        "--out_dir",    str(out_dir),
-        "--batch_id",   batch_id,
-        "--superanimal", superanimal,
-        "--videos",     *[str(v) for v in videos],
+        "--_subprocess",
+        "--out_dir",
+        str(out_dir),
+        "--batch_id",
+        batch_id,
+        "--superanimal",
+        superanimal,
+        "--videos",
+        *[str(v) for v in videos],
     ]
     if video_adapt:
         cmd.append("--video_adapt")
@@ -127,23 +137,20 @@ def run_dlc_inference_subprocess(
     proc = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,                             
+        stderr=subprocess.STDOUT,
         text=True,
-        bufsize=1,                                 
+        bufsize=1,
         env=env,
     )
 
     for line in proc.stdout:
         line = line.rstrip("\n")
         if line:
-                                                                        
-                                                                         
             print(f"[dlc-worker] {line}", flush=True)
 
     proc.wait()
     if proc.returncode != 0:
         raise RuntimeError(f"DLC subprocess exited with code {proc.returncode}")
-
 
 
 def run_inference(args) -> None:
@@ -170,7 +177,6 @@ def run_inference(args) -> None:
     logger.info(f"Model            : {args.config_path or args.superanimal}")
     logger.info("=" * 60)
 
-                               
     logger.info("Setting up working directory to route DLC outputs...")
     working_videos = []
     for video_path in videos:
@@ -179,13 +185,14 @@ def run_inference(args) -> None:
             try:
                 os.symlink(video_path.resolve(), symlink_path)
             except OSError:
-                                                                                
                 import shutil
+
                 shutil.copy2(video_path, symlink_path)
         working_videos.append(symlink_path)
 
     logger.info("Loading DeepLabCut (this may take a moment)...")
     import deeplabcut
+
     logger.info("DeepLabCut loaded.")
 
     t0 = time.time()
@@ -194,7 +201,7 @@ def run_inference(args) -> None:
         logger.info("Starting inference in Standard Project Mode...")
         deeplabcut.analyze_videos(
             args.config_path,
-            [str(v) for v in working_videos],                   
+            [str(v) for v in working_videos],
             videotype=working_videos[0].suffix.lstrip(".") or "mp4",
             save_as_csv=True,
             destfolder=str(out_dir),
@@ -205,17 +212,17 @@ def run_inference(args) -> None:
             f"video_adapt={args.video_adapt}..."
         )
         deeplabcut.video_inference_superanimal(
-            [str(v) for v in working_videos],                   
+            [str(v) for v in working_videos],
             args.superanimal,
             videotype=working_videos[0].suffix.lstrip(".") or "mp4",
             video_adapt=args.video_adapt,
         )
 
     logger.info("Locating target H5 files...")
-                                                             
+
     for sym_path, orig_path in zip(working_videos, videos):
         h5_candidates = sorted(out_dir.glob(f"{sym_path.stem}*.h5"))
-            
+
         if not h5_candidates:
             raise FileNotFoundError(
                 f"No H5 found in {out_dir} for {sym_path.stem} — "
@@ -232,10 +239,10 @@ def run_inference(args) -> None:
 
         if src_h5.resolve() != target_path.resolve():
             import shutil
+
             shutil.copy2(src_h5, target_path)
             logger.info(f"Linked H5: {src_h5.name} -> {target_path.name}")
 
-                              
     for sym_path in working_videos:
         if sym_path.exists():
             sym_path.unlink()
@@ -243,27 +250,34 @@ def run_inference(args) -> None:
     elapsed = time.time() - t0
     logger.info(f"SUCCESS: Inference completed in {elapsed:.1f}s.")
 
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         description="Run DLC inference on a trimmed video or batch of videos.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     grp = p.add_mutually_exclusive_group(required=True)
-    grp.add_argument("--videos",     nargs="+", help="Path(s) to video file(s).")
-    grp.add_argument("--video_dir",  help="Directory containing video files.")
+    grp.add_argument("--videos", nargs="+", help="Path(s) to video file(s).")
+    grp.add_argument("--video_dir", help="Directory containing video files.")
 
-    p.add_argument("--out_dir",  required=True, help="Directory for DLC outputs.")
+    p.add_argument("--out_dir", required=True, help="Directory for DLC outputs.")
     p.add_argument("--batch_id", required=True, help="Batch ID for log file naming.")
-    p.add_argument("--out_h5",   required=False, help="Explicit destination for single-video H5.")
+    p.add_argument(
+        "--out_h5", required=False, help="Explicit destination for single-video H5."
+    )
 
     mode = p.add_mutually_exclusive_group()
-    mode.add_argument("--superanimal", default="superanimal_topviewmouse", metavar="MODEL")
+    mode.add_argument(
+        "--superanimal", default="superanimal_topviewmouse", metavar="MODEL"
+    )
     mode.add_argument("--config_path", help="DLC project config.yaml (standard mode).")
 
-    p.add_argument("--video_adapt", action="store_true",
-                   help="(SuperAnimal only) Enable unsupervised video adaptation.")
+    p.add_argument(
+        "--video_adapt",
+        action="store_true",
+        help="(SuperAnimal only) Enable unsupervised video adaptation.",
+    )
 
-                                                                       
     p.add_argument("--_subprocess", action="store_true", help=argparse.SUPPRESS)
     return p
 
@@ -278,20 +292,19 @@ def main():
             sys.exit(1)
         args.videos = [str(v) for v in videos]
 
-    out_dir  = Path(args.out_dir)
-    
+    out_dir = Path(args.out_dir)
+
     setup_logging()
 
-                                                                   
     if not args._subprocess:
-        log_file = out_dir.parent.parent / "logs" / args.batch_id / "dlc_inference_log.txt"
+        log_file = (
+            out_dir.parent.parent / "logs" / args.batch_id / "dlc_inference_log.txt"
+        )
         logger.info(f"Bash is managing logs to: {log_file}")
 
     if args._subprocess:
-                                                                 
         run_inference(args)
     else:
-                                                                        
         log_environment()
         try:
             run_dlc_inference_subprocess(

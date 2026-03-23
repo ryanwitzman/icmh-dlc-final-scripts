@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
+
 def setup_logger(log_file: str) -> logging.Logger:
     log_path = Path(log_file)
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -25,6 +26,7 @@ def setup_logger(log_file: str) -> logging.Logger:
     logger.addHandler(sh)
 
     return logger
+
 
 def validate_h5(
     df: pd.DataFrame,
@@ -74,7 +76,6 @@ def validate_h5(
         out_of_range = (like_df < 0.0) | (like_df > 1.0)
         bad_cols = [str(c) for c in like_cols[out_of_range.any(axis=0)]]
         if bad_cols:
-
             sample = bad_cols[:5]
             extra = f" (and {len(bad_cols) - 5} more)" if len(bad_cols) > 5 else ""
             errors.append(
@@ -89,11 +90,9 @@ def validate_h5(
     all_nan_bps: list[str] = []
     for bp in present_bodyparts:
         try:
-
             if nlevels == 3:
                 like_series = df.xs("likelihood", level=2, axis=1)[bp]
             else:
-
                 like_series = df.xs("likelihood", level=3, axis=1)[bp]
         except KeyError:
             continue
@@ -123,6 +122,7 @@ def validate_h5(
 
     logger.info("[validate] All checks passed.")
 
+
 def load_h5(h5_path: Path, logger: logging.Logger) -> pd.DataFrame:
     try:
         df = pd.read_hdf(h5_path)
@@ -146,16 +146,15 @@ def load_h5(h5_path: Path, logger: logging.Logger) -> pd.DataFrame:
     logger.info(f"H5 loaded: {len(df)} frames, scorer(s): {scorer}")
     return df
 
+
 def flatten(df: pd.DataFrame, pcutoff: float, logger: logging.Logger) -> pd.DataFrame:
     nlevels = df.columns.nlevels
 
     if nlevels == 3:
-
         df.columns = df.columns.droplevel(0)
         bodyparts = df.columns.get_level_values(0).unique().tolist()
 
     elif nlevels == 4:
-
         df.columns = df.columns.droplevel(0)
 
         individuals = df.columns.get_level_values(0).unique().tolist()
@@ -227,6 +226,7 @@ def flatten(df: pd.DataFrame, pcutoff: float, logger: logging.Logger) -> pd.Data
         f"(pcutoff={pcutoff})."
     )
     return out
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -309,6 +309,6 @@ def main():
         logger.error(f"FAILED: {e}", exc_info=True)
         sys.exit(1)
 
+
 if __name__ == "__main__":
     main()
-
