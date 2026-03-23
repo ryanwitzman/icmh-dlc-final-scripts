@@ -17,11 +17,7 @@ class FlushingStreamHandler(logging.StreamHandler):
 
 
 def setup_logging() -> None:
-    """
-    Configure root logger with a flushing stdout handler ONLY.
-    Note: We do NOT use a FileHandler here because the parent Bash script
-    is already capturing stdout and writing it to the log file using 'tee'.
-    """
+
     fmt = logging.Formatter(
         fmt="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
@@ -108,10 +104,7 @@ def run_dlc_inference_subprocess(
     video_adapt: bool,
     out_h5: Path | None,
 ) -> None:
-    """
-    Runs DLC inference in a child process so its stdout/stderr can be
-    streamed line-by-line into our logger in real time.
-    """
+
     cmd = [
         sys.executable, "-u",                                         
         __file__,
