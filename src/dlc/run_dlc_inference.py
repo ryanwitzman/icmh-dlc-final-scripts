@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 # ---------------------------------------------------------------------------
-# Flushing handlers — every emit() immediately hits disk / stdout
+# Flushing handlers — every emit() immediately hits stdout
 # ---------------------------------------------------------------------------
 
 class FlushingStreamHandler(logging.StreamHandler):
@@ -19,16 +19,12 @@ class FlushingStreamHandler(logging.StreamHandler):
         self.flush()
 
 
-class FlushingFileHandler(logging.FileHandler):
-    def emit(self, record):
-        super().emit(record)
-        self.flush()
-
-
-def setup_logging(log_file: Path, is_subprocess: bool = False) -> None:
-    """Configure root logger with flushing stdout + file handlers."""
-    log_file.parent.mkdir(parents=True, exist_ok=True)
-
+def setup_logging() -> None:
+    """
+    Configure root logger with a flushing stdout handler ONLY.
+    Note: We do NOT use a FileHandler here because the parent Bash script
+    is already capturing stdout and writing it to the log file using 'tee'.
+    """
     fmt = logging.Formatter(
         fmt="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
@@ -42,13 +38,6 @@ def setup_logging(log_file: Path, is_subprocess: bool = False) -> None:
     root.setLevel(logging.INFO)
     root.handlers.clear()
     root.addHandler(sh)
-
-    # FIX: Only the parent process attaches the file handler to prevent double-logging
-    if not is_subprocess:
-        fh = FlushingFileHandler(log_file, mode="a", encoding="utf-8")
-        fh.setLevel(logging.INFO)
-        fh.setFormatter(fmt)
-        root.addHandler(fh)
 
 
 logger = logging.getLogger(__name__)
@@ -117,7 +106,7 @@ def log_environment() -> None:
 
 
 # ---------------------------------------------------------------------------
-# DLC subprocess wrapper — streams stdout/stderr live to logger
+# DLC subprocess wrapper — streams stdout live to logger
 # ---------------------------------------------------------------------------
 
 def run_dlc_inference_subprocess(
@@ -130,8 +119,7 @@ def run_dlc_inference_subprocess(
 ) -> None:
     """
     Runs DLC inference in a child process so its stdout/stderr can be
-    streamed line-by-line into our logger (and therefore into the log file)
-    in real time, rather than buffering until completion.
+    streamed line-by-line into our logger in real time.
     """
     cmd = [
         sys.executable, "-u",          # -u = unbuffered Python output
@@ -164,7 +152,9 @@ def run_dlc_inference_subprocess(
     for line in proc.stdout:
         line = line.rstrip("\n")
         if line:
-            logger.info(f"[dlc] {line}")
+            # Direct print prevents the parent logger from wrapping the 
+            # child's already-timestamped log line in a second timestamp.
+            print(f"[dlc-worker] {line}", flush=True)
 
     proc.wait()
     if proc.returncode != 0:
@@ -219,7 +209,7 @@ def run_inference(args) -> None:
             f"Starting SuperAnimal inference ({args.superanimal}) | "
             f"video_adapt={args.video_adapt}..."
         )
-        # FIX: Removed the unsupported 'destfolder' argument for SuperAnimal
+        # SuperAnimal does not support destfolder; it saves locally to the video path
         deeplabcut.video_inference_superanimal(
             [str(v) for v in videos],
             args.superanimal,
@@ -229,7 +219,7 @@ def run_inference(args) -> None:
 
     logger.info("Locating target H5 files...")
     for video_path in videos:
-        # FIX: SuperAnimal outputs save in the same directory as the video, not out_dir
+        # SuperAnimal outputs save in the same directory as the video, not out_dir
         h5_candidates = sorted(video_path.parent.glob(f"{video_path.stem}*.h5"))
         
         # Fallback check in case DLC created a subfolder
@@ -299,21 +289,20 @@ def main():
         args.videos = [str(v) for v in videos]
 
     out_dir  = Path(args.out_dir)
-    log_file = out_dir.parent.parent / "logs" / args.batch_id / "dlc_inference_log.txt"
     
-    # FIX: Pass the subprocess flag to setup_logging to prevent double-writes
-    setup_logging(log_file, is_subprocess=args._subprocess)
-    
-    # Only print the log file info from the parent process
+    # Initialize stdout logging
+    setup_logging()
+
+    # Only print the expected log file path from the parent process
     if not args._subprocess:
-        logger.info(f"Log file: {log_file}")
+        log_file = out_dir.parent.parent / "logs" / args.batch_id / "dlc_inference_log.txt"
+        logger.info(f"Bash is managing logs to: {log_file}")
 
     if args._subprocess:
         # We're inside the child process — run inference directly
         run_inference(args)
     else:
         # We're the parent — log environment info here, then spawn child
-        # so DLC's own prints are also streamed into the log
         log_environment()
         try:
             run_dlc_inference_subprocess(
