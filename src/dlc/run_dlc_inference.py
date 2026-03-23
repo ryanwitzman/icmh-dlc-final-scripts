@@ -165,6 +165,10 @@ def run_dlc_inference_subprocess(
 # Core inference (runs inside the subprocess)
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Core inference (runs inside the subprocess)
+# ---------------------------------------------------------------------------
+
 def run_inference(args) -> None:
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -189,6 +193,20 @@ def run_inference(args) -> None:
     logger.info(f"Model            : {args.config_path or args.superanimal}")
     logger.info("=" * 60)
 
+    # --- THE SYMLINK TRICK ---
+    logger.info("Setting up working directory to route DLC outputs...")
+    working_videos = []
+    for video_path in videos:
+        symlink_path = out_dir / video_path.name
+        if not symlink_path.exists():
+            try:
+                os.symlink(video_path.resolve(), symlink_path)
+            except OSError:
+                # Fallback to copy if symlinks are restricted on the file system
+                import shutil
+                shutil.copy2(video_path, symlink_path)
+        working_videos.append(symlink_path)
+
     logger.info("Loading DeepLabCut (this may take a moment)...")
     import deeplabcut
     logger.info("DeepLabCut loaded.")
@@ -199,8 +217,8 @@ def run_inference(args) -> None:
         logger.info("Starting inference in Standard Project Mode...")
         deeplabcut.analyze_videos(
             args.config_path,
-            [str(v) for v in videos],
-            videotype=videos[0].suffix.lstrip(".") or "mp4",
+            [str(v) for v in working_videos], # Use the symlinks
+            videotype=working_videos[0].suffix.lstrip(".") or "mp4",
             save_as_csv=True,
             destfolder=str(out_dir),
         )
@@ -209,26 +227,21 @@ def run_inference(args) -> None:
             f"Starting SuperAnimal inference ({args.superanimal}) | "
             f"video_adapt={args.video_adapt}..."
         )
-        # SuperAnimal does not support destfolder; it saves locally to the video path
         deeplabcut.video_inference_superanimal(
-            [str(v) for v in videos],
+            [str(v) for v in working_videos], # Use the symlinks
             args.superanimal,
-            videotype=videos[0].suffix.lstrip(".") or "mp4",
+            videotype=working_videos[0].suffix.lstrip(".") or "mp4",
             video_adapt=args.video_adapt,
         )
 
     logger.info("Locating target H5 files...")
-    for video_path in videos:
-        # SuperAnimal outputs save in the same directory as the video, not out_dir
-        h5_candidates = sorted(video_path.parent.glob(f"{video_path.stem}*.h5"))
-        
-        # Fallback check in case DLC created a subfolder
-        if not h5_candidates:
-            h5_candidates = sorted(video_path.parent.rglob(f"{video_path.stem}*.h5"))
+    # Now look in out_dir because DLC saved everything there!
+    for sym_path, orig_path in zip(working_videos, videos):
+        h5_candidates = sorted(out_dir.glob(f"{sym_path.stem}*.h5"))
             
         if not h5_candidates:
             raise FileNotFoundError(
-                f"No H5 found in {video_path.parent} for {video_path.stem} — "
+                f"No H5 found in {out_dir} for {sym_path.stem} — "
                 f"DLC may have failed silently."
             )
 
@@ -237,17 +250,21 @@ def run_inference(args) -> None:
         if out_h5_path and len(videos) == 1:
             target_path = out_h5_path
         else:
-            stem_no_prefix = video_path.stem.replace("trimmed_", "")
+            stem_no_prefix = orig_path.stem.replace("trimmed_", "")
             target_path = out_dir / f"{stem_no_prefix}_superanimal.h5"
 
         if src_h5.resolve() != target_path.resolve():
+            import shutil
             shutil.copy2(src_h5, target_path)
             logger.info(f"Linked H5: {src_h5.name} -> {target_path.name}")
 
+    # --- CLEANUP SYMLINKS ---
+    for sym_path in working_videos:
+        if sym_path.exists():
+            sym_path.unlink()
+
     elapsed = time.time() - t0
     logger.info(f"SUCCESS: Inference completed in {elapsed:.1f}s.")
-
-
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------

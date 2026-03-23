@@ -67,5 +67,5 @@ If you run the full Snakemake workflow, every individual step (resize, inference
 
 For example, to check the inference log for a specific batch:
 ```bash
-cat outputs/logs/{batch_id}/dlc_inference.log
+cat outputs/logs/{batch_id}/{vid}_inference.log
 ```

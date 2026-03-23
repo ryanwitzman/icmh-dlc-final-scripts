@@ -27,7 +27,7 @@ MANIFEST        = f"{STAGING_LOG_DIR}/{BATCH_ID}_manifest.csv"
 INGEST_FLAG     = f"{STAGING_LOG_DIR}/{BATCH_ID}.ingest.done"
 RESIZE_SCALE    = config.get("resize_scale", "iw/2:ih/2")
 
-# --- 2. FILE DISCOVERY & WILDCARDS ---
+# --- 2. FILE DISCOVERY ---
 raw_files = []
 if os.path.exists(STAGING_DIR):
     raw_files = [
@@ -36,27 +36,131 @@ if os.path.exists(STAGING_DIR):
         for f in files if f.lower().endswith(".mp4")
     ]
 
-# FIX: Strip the .mp4 extension so {vid} is just the raw name
+# Strip the .mp4 extension so {vid} is strictly the video name
 PATH_MAP = {os.path.splitext(os.path.basename(f))[0]: f for f in raw_files}
 VIDEOS   = list(PATH_MAP.keys())
 
 def find_existing_output(vid, rule_folder, filename_template):
-    """
-    Search `OUTPUT_DIR` for any older batch that already has this file.
-    Always prefer the newest match (by sort order).
-    If none exists, return the path where it *should* go in the current batch.
-    """
     pattern = f"{OUTPUT_DIR}/{rule_folder}/*/{filename_template.format(vid=vid)}"
     matches = sorted(glob.glob(pattern))
     if matches:
-        return matches[-1] # Uses the file from a previous batch
+        return matches[-1] # Uses the file from a previous batch if it exists
     return f"{OUTPUT_DIR}/{rule_folder}/{BATCH_ID}/{filename_template.format(vid=vid)}"
 
-POSTPROCESSED_PATHS = [find_existing_output(vid, "postprocessed", "{vid}.csv") for vid in VIDEOS]
-STATS_PATHS = [find_existing_output(vid, "qc", "{vid}/{vid}_stats.csv") for vid in VIDEOS]
-ALL_INPUTS = POSTPROCESSED_PATHS + [f"{OUTPUT_DIR}/qc/{BATCH_ID}/qc_summary.csv"]
+# --- 3. PRE-COMPUTE ALL PATHS TO PREVENT DAG LAMBDA FAILURES ---
+TRIMMED_INPUTS = {vid: find_existing_output(vid, "trimmed", "trimmed_{vid}.mp4") for vid in VIDEOS}
+RESIZED_INPUTS = {vid: find_existing_output(vid, "resized", "trimmed_{vid}.mp4") for vid in VIDEOS}
+H5_INPUTS      = {vid: find_existing_output(vid, "dlc_results", "{vid}_superanimal.h5") for vid in VIDEOS}
+CSV_INPUTS     = {vid: find_existing_output(vid, "postprocessed", "{vid}.csv") for vid in VIDEOS}
+STATS_INPUTS   = {vid: find_existing_output(vid, "qc", "{vid}/{vid}_stats.csv") for vid in VIDEOS}
 
-# --- 3. TARGET RULE ---
+# Our final targets are whatever CSV_INPUTS resolved to, PLUS the new qc_summary
+ALL_TARGETS = list(CSV_INPUTS.values()) + [f"{OUTPUT_DIR}/qc/{BATCH_ID}/qc_summary.csv"]
+
 rule all:
     input:
-        all_targets=ALL_INPUTS
+        all_targets=ALL_TARGETS
+
+# --- 4. PIPELINE RULES ---
+
+rule trim_video:
+    input:
+        video = lambda wildcards: PATH_MAP[wildcards.vid]
+    output:
+        video = f"{OUTPUT_DIR}/trimmed/{BATCH_ID}/trimmed_{{vid}}.mp4"
+    log:
+        f"{LOG_DIR}/{{vid}}_preprocess.log"
+    script:
+        "../src/preprocess/trim_video.py"
+
+rule resize_for_dlc:
+    input:
+        video = lambda wildcards: TRIMMED_INPUTS[wildcards.vid]
+    output:
+        video = f"{RESIZED_DIR}/trimmed_{{vid}}.mp4"
+    params:
+        scale = RESIZE_SCALE
+    log:
+        f"{LOG_DIR}/{{vid}}_resize.log"
+    shell:
+        """
+        ffmpeg -y \
+            -i {input.video} \
+            -vf "scale={params.scale}" \
+            -c:v libx264 -crf 18 -preset fast \
+            -an \
+            {output.video} > {log} 2>&1
+        """
+
+rule dlc_inference:
+    input:
+        video = lambda wildcards: RESIZED_INPUTS[wildcards.vid]
+    output:
+        h5 = f"{OUTPUT_DIR}/dlc_results/{BATCH_ID}/{{vid}}_superanimal.h5"
+    log:
+        f"{LOG_DIR}/{{vid}}_inference.log"
+    params:
+        out_dir   = f"{OUTPUT_DIR}/dlc_results/{BATCH_ID}",
+        model_arg = f"--superanimal {config.get('superanimal_model', 'superanimal_topviewmouse')}"
+    shell:
+        """
+        python3 -u ../src/dlc/run_dlc_inference.py \
+            --videos {input.video} \
+            --out_dir {params.out_dir} \
+            --out_h5 {output.h5} \
+            {params.model_arg} > {log} 2>&1
+        """
+
+rule postprocess:
+    input:
+        h5 = lambda wildcards: H5_INPUTS[wildcards.vid]
+    output:
+        csv = f"{OUTPUT_DIR}/postprocessed/{BATCH_ID}/{{vid}}.csv"
+    params:
+        pcutoff = config.get("pcutoff", 0.6)
+    log:
+        f"{LOG_DIR}/{{vid}}_postprocess.log"
+    shell:
+        """
+        python3 ../src/postprocess/h5_to_csv.py \
+            --h5 {input.h5} \
+            --out_csv {output.csv} \
+            --log_file {log} \
+            --pcutoff {params.pcutoff}
+        """
+
+rule quality_control:
+    input:
+        csv = lambda wildcards: CSV_INPUTS[wildcards.vid]
+    output:
+        traj    = f"{OUTPUT_DIR}/qc/{BATCH_ID}/{{vid}}/{{vid}}_trajectory.png",
+        heatmap = f"{OUTPUT_DIR}/qc/{BATCH_ID}/{{vid}}/{{vid}}_heatmap.png",
+        speed   = f"{OUTPUT_DIR}/qc/{BATCH_ID}/{{vid}}/{{vid}}_speed.png",
+        stats   = f"{OUTPUT_DIR}/qc/{BATCH_ID}/{{vid}}/{{vid}}_stats.csv"
+    params:
+        outdir   = f"{OUTPUT_DIR}/qc/{BATCH_ID}/{{vid}}/",
+        vid_name = "{vid}"
+    log:
+        f"{LOG_DIR}/{{vid}}_qc.log"
+    shell:
+        """
+        python3 ../src/qc/qc_analytics.py \
+            --input {input.csv} \
+            --outdir {params.outdir} \
+            --vid {params.vid_name} \
+            --stats_out {output.stats} > {log} 2>&1
+        """
+
+rule aggregate_qc:
+    input:
+        stats = list(STATS_INPUTS.values())
+    output:
+        summary = f"{OUTPUT_DIR}/qc/{BATCH_ID}/qc_summary.csv"
+    run:
+        df_list = [pd.read_csv(f) for f in input.stats]
+        if df_list:
+            final_df = pd.concat(df_list, ignore_index=True)
+            final_df.to_csv(output.summary, index=False)
+        else:
+            with open(output.summary, 'w') as f:
+                f.write("video,mean_conf,median_conf,frac_below_thresh\n")
