@@ -51,6 +51,7 @@ with open(log_file, "a") as log:
     videos = sorted(input_dir.rglob("*.mp4")) + sorted(input_dir.rglob("*.MP4"))
 
     for video in videos:
+
         def timestamp():
             return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
