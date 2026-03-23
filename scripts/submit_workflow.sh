@@ -40,5 +40,4 @@ snakemake \
   --conda-prefix /N/project/msk_dl/conda-envs \
   --latency-wait 120 \
   --rerun-incomplete \
-  --rerun-triggers mtime \
   --printshellcmds

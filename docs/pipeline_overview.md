@@ -5,15 +5,7 @@ You may have to change the requirements in the file `workflow/cluster.yaml` depe
 ## Batch Organization
 All outputs are organized under `outputs/{rule}/{batch_id}/`. By default, `batch_id` is set to `auto` in `configs/config.yaml`, which generates a timestamp-based ID (e.g. `batch_20260312_160000`) each time you run the pipeline. Set it to a fixed name like `batch_001` to pin a specific batch.
 
-## 1. Ingest (Optional)
-Rule: `ingest.smk`
-Pulls raw `.mp4` videos from the Kacena Lab SharePoint into `staging/`. It's disabled in the `Snakefile` by default, assuming you just put the videos in `staging/` manually.
-
-**Expected Inputs:** SharePoint URL and remote path (credentials from config/env)
-**Expected Outputs:** `staging/_logs/{batch_id}_manifest.csv`, `staging/_logs/{batch_id}.ingest.done`
-**Logs:** `staging/_logs/{batch_id}_ingest_snakemake.log`
-
-## 2. Preprocess
+## 1. Preprocess
 Rule: `preprocess.smk`
 Trims the first 60 seconds off so we skip the setup time, and keeps 300 seconds of footage for testing.
 
@@ -23,7 +15,7 @@ If you want to run this outside of Snakemake, you can just run `python3 src/prep
 **Expected Outputs:** `outputs/trimmed/{batch_id}/trimmed_{vid}.mp4`
 **Logs:** `outputs/logs/{batch_id}/{vid}_preprocess.log` (and `outputs/logs/{batch_id}/batch_trim_log.txt`)
 
-## 3. Resize
+## 2. Resize
 Rule: `resize.smk`
 Scales the video down by half (`iw/2:ih/2`), encodes with `libx264`, and forces a constant frame rate of 30fps so audio/video sync doesn't break. You need FFmpeg 6.1 for this.
 
@@ -31,7 +23,7 @@ Scales the video down by half (`iw/2:ih/2`), encodes with `libx264`, and forces 
 **Expected Outputs:** Downscaled video `outputs/resized/{batch_id}/trimmed_{vid}.mp4`
 **Logs:** `outputs/logs/{batch_id}/{vid}_resize.log`
 
-## 4. DLC Inference
+## 3. DLC Inference
 Rule: `dlc_inference.smk`
 Runs DeepLabCut 2.3.11 using the `superanimal_topviewmouse` model. This runs on the `gpu-interactive` partition. You may need to switch to `gpu` partition if inference is expected to take longer than 4 hours.
 
@@ -45,7 +37,7 @@ This automatically crawls your `outputs/resized` folder and runs inference on ev
 **Expected Outputs:** `outputs/dlc_results/{batch_id}/{vid}_superanimal.h5`
 **Logs:** `outputs/logs/{batch_id}/{vid}_inference.log` (and Snakemake logs or `dlc_inference_*.out` for the standalone run)
 
-## 5. Postprocess
+## 4. Postprocess
 Rule: `postprocess.smk`
 Cleans up the raw DLC output. Any points with a likelihood below 0.6 get replaced with `NaN` so they don't mess up analysis.
 
@@ -53,7 +45,7 @@ Cleans up the raw DLC output. Any points with a likelihood below 0.6 get replace
 **Expected Outputs:** `outputs/postprocessed/{batch_id}/{vid}.csv`
 **Logs:** `outputs/logs/{batch_id}/{vid}_postprocess.log`
 
-## 6. QC
+## 5. QC
 Rule: `qc.smk`
 Aggregates the post-processed CSVs into a single `qc_summary.csv`. Creates a heatmap, speed graph, and a trajectory plot.
 

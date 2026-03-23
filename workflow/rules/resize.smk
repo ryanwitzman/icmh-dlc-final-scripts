@@ -16,6 +16,5 @@ rule resize_for_dlc:
             -vf "scale={params.scale}" \
             -c:v libx264 -crf 18 -preset fast \
             -an \
-            {output.video} \
-            > {log} 2>&1
+            {output.video} > {log} 2>&1
         """

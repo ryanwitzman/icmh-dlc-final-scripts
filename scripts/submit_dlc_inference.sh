@@ -2,7 +2,6 @@
 
 # ─── 1. LOGIN NODE LOGIC ──────────────────────────────────────────────────────
 if [ -z "$SLURM_JOB_ID" ]; then
-    # Resolve absolute paths immediately to avoid the /var/spool/slurm trap
     SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]:-$0}")"
     SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
     ROOT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -13,7 +12,6 @@ if [ -z "$SLURM_JOB_ID" ]; then
         exit 1
     fi
 
-    # Parse config via Python on login node
     PROJECT_BASE_DIR=$(python3 -c "import yaml, os; print(os.path.abspath(os.path.join('${ROOT_DIR}', yaml.safe_load(open('${PROJECT_CONFIG_PATH}'))['base_dir'])))")
     BATCH_ID=$(python3 -c "import yaml, os; from datetime import datetime; bid = yaml.safe_load(open('${PROJECT_CONFIG_PATH}')).get('batch_id', 'auto'); print(datetime.now().strftime('batch_%Y%m%d_%H%M%S') if bid == 'auto' else bid)")
 
@@ -39,62 +37,72 @@ if [ -z "$SLURM_JOB_ID" ]; then
 fi
 
 # ─── 2. COMPUTE NODE LOGIC ────────────────────────────────────────────────────
-# Use -e (exit on error) and -o pipefail, but AVOID -u because of Lmod/PS1 issues
 set -eo pipefail
 
-# Setup Logging IMMEDIATELY
 LOG_DIR="${PROJECT_BASE_DIR}/outputs/logs/${BATCH_ID}"
 mkdir -p "$LOG_DIR"
 exec > >(tee -a "${LOG_DIR}/dlc_inference_log.txt") 2>&1
 
 echo "=== Job ${SLURM_JOB_ID} started on $(hostname) at $(date) ==="
 
-# ENVIRONMENT SETUP (Quartz specific)
 echo "Loading environment..."
 module load conda/25.3.0
-
-# Initialize conda for this subshell without hardcoding /opt/conda
 CONDA_BASE=$(conda info --base)
 source "${CONDA_BASE}/etc/profile.d/conda.sh"
-
 conda activate icmh-dlc-310
 echo "Active environment: $CONDA_DEFAULT_ENV"
 
 cd "${PROJECT_BASE_DIR}"
 
-# Define output targets
 DLC_RESULTS_DIR="${PROJECT_BASE_DIR}/outputs/dlc_results/${BATCH_ID}"
 mkdir -p "$DLC_RESULTS_DIR"
 
 # ─── 3. VIDEO PROCESSING ─────────────────────────────────────────────────────
-declare -A LATEST_VIDEOS
+declare -A ALL_VIDEOS
+declare -A PENDING_VIDEOS
 
-# Find and deduplicate videos
+# 1. Grab all valid videos
 while IFS= read -r -d '' video; do
     filename=$(basename -- "$video")
-    vid_stem="${filename%.*}"
-    stem_no_prefix="${vid_stem#trimmed_}"
-    LATEST_VIDEOS["$stem_no_prefix"]="$video"
-done < <(find "${PROJECT_BASE_DIR}/outputs/resized/" -name "*.mp4" -print0)
-
-if [ ${#LATEST_VIDEOS[@]} -eq 0 ]; then
-    echo "ERROR: No videos found in ${PROJECT_BASE_DIR}/outputs/resized/" >&2
-    exit 1
-fi
-
-echo "Found ${#LATEST_VIDEOS[@]} unique video(s)."
-
-for stem in "${!LATEST_VIDEOS[@]}"; do
-    video="${LATEST_VIDEOS[$stem]}"
     
-    # Check if this video has already been processed in ANY batch
-    EXISTING_H5=$(find "${PROJECT_BASE_DIR}/outputs/dlc_results/" -name "${stem}_superanimal.h5" -print -quit)
-    
-    if [ -n "$EXISTING_H5" ]; then
-        echo "Skipping $stem: Inference exists at $EXISTING_H5"
+    if [[ "$filename" == *labeled.mp4 ]]; then
         continue
     fi
 
+    vid_stem="${filename%.*}"
+    stem_no_prefix="${vid_stem#trimmed_}"
+    ALL_VIDEOS["$stem_no_prefix"]="$video"
+done < <(find "${PROJECT_BASE_DIR}/outputs/resized/" -type f -name "*.mp4" ! -name "*labeled.mp4" -print0)
+
+echo "Found ${#ALL_VIDEOS[@]} total video(s) in resized folder."
+
+# 2. Filter out the ones we already processed
+for stem in "${!ALL_VIDEOS[@]}"; do
+    video="${ALL_VIDEOS[$stem]}"
+    
+    # Using ls with globbing bypasses Lustre metadata caching issues
+    EXISTING_H5=$(ls "${PROJECT_BASE_DIR}/outputs/dlc_results/"*/"${stem}_superanimal.h5" 2>/dev/null | head -n 1 || true)
+    
+    if [ -n "$EXISTING_H5" ] && [ -f "$EXISTING_H5" ]; then
+        echo "  -> Skipping $stem (Inference complete at $EXISTING_H5)"
+    else
+        PENDING_VIDEOS["$stem"]="$video"
+    fi
+done
+
+# 3. Stop if everything is done
+if [ ${#PENDING_VIDEOS[@]} -eq 0 ]; then
+    echo "All videos have already been processed. Nothing to do!"
+    echo "=== Job ${SLURM_JOB_ID} finished at $(date) ==="
+    exit 0
+fi
+
+echo "Proceeding with inference on ${#PENDING_VIDEOS[@]} pending video(s)..."
+
+# 4. Run inference
+for stem in "${!PENDING_VIDEOS[@]}"; do
+    video="${PENDING_VIDEOS[$stem]}"
+    
     echo "----------------------------------------------------------------"
     echo "Processing: $stem"
     echo "Source: $video"

@@ -6,7 +6,7 @@
 
 ## Outputs
 - **DLC Output Files:** The script spits out tracking data, most importantly the `.h5` files, which get saved to `outputs/{batch_id}/dlc_results/`. The postprocess step will later clean this up into a nice CSV file.
-- **Logs:** A detailed log file correctly captures everything—from the overall runtime, to GPU allocation (scraped from `nvidia-smi`), to any low-level errors DLC throws. You'll find these organized per batch and per video in `outputs/{batch_id}/logs/{vid}_inference.log`.
+- **Logs:** A detailed log file correctly captures everything—from the overall runtime, to GPU allocation (scraped from `nvidia-smi`), to any low-level errors DLC throws. You'll find these organized per batch and per video in `outputs/logs/{batch_id}/dlc_inference_log.txt`.
 
 
 ## Documentation
@@ -24,4 +24,4 @@ If you're swapping out SuperAnimal for a custom trained model, you'll need to ch
 Because DLC normally writes outputs directly into whatever directory the video lives in, our wrapper script grabs all the newly-made `.h5`, `.csv`, and `.pickle` files and relocates them to `outputs/{batch_id}/dlc_results/`.
 
 ### Output Logs
-The logging is cleanly organized per batch and per video. If you have `outputs/{batch_id}/resized/trimmed_video1.mp4`, its corresponding runtime log will be waiting at `outputs/{batch_id}/logs/video1_inference.log`. If inference fails or takes forever, checking that file will tell you if Snakemake couldn't find a GPU or if DLC messed up on something internally.
+The logging is cleanly organized per batch. If you have `outputs/{batch_id}/resized/trimmed_video1.mp4`, its logs will be at `outputs/logs/{batch_id}/`. If inference fails or takes forever, checking those files will tell you the issue.

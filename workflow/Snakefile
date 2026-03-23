@@ -1,14 +1,16 @@
 import os
+import glob
+import pandas as pd
 from datetime import datetime
 from dotenv import load_dotenv
 
+# --- 1. CONFIG & ENVIRONMENT ---
 configfile: "../configs/config.yaml"
 
 load_dotenv("../.env")
 config["tenant_id"]     = os.getenv("TENANT_ID")
 config["client_id"]     = os.getenv("CLIENT_ID")
 config["client_secret"] = os.getenv("CLIENT_SECRET")
-
 
 INPUT_DIR   = config.get("input_dir",   "../inputs")
 STAGING_DIR = config.get("staging_dir", "../staging")
@@ -17,14 +19,15 @@ OUTPUT_DIR  = config.get("output_dir",  "../outputs")
 _raw_batch  = config.get("batch_id", "auto")
 BATCH_ID    = datetime.now().strftime("batch_%Y%m%d_%H%M%S") if _raw_batch == "auto" else _raw_batch
 
-BATCH_DIR   = f"{OUTPUT_DIR}/{BATCH_ID}"
-LOG_DIR     = f"{OUTPUT_DIR}/logs/{BATCH_ID}"
-RESIZED_DIR = f"{OUTPUT_DIR}/resized/{BATCH_ID}"
+BATCH_DIR       = f"{OUTPUT_DIR}/{BATCH_ID}"
+LOG_DIR         = f"{OUTPUT_DIR}/logs/{BATCH_ID}"
+RESIZED_DIR     = f"{OUTPUT_DIR}/resized/{BATCH_ID}"
 STAGING_LOG_DIR = f"{STAGING_DIR}/_logs"
-MANIFEST    = f"{STAGING_LOG_DIR}/{BATCH_ID}_manifest.csv"
-INGEST_FLAG = f"{STAGING_LOG_DIR}/{BATCH_ID}.ingest.done"
+MANIFEST        = f"{STAGING_LOG_DIR}/{BATCH_ID}_manifest.csv"
+INGEST_FLAG     = f"{STAGING_LOG_DIR}/{BATCH_ID}.ingest.done"
+RESIZE_SCALE    = config.get("resize_scale", "iw/2:ih/2")
 
-
+# --- 2. FILE DISCOVERY & WILDCARDS ---
 raw_files = []
 if os.path.exists(STAGING_DIR):
     raw_files = [
@@ -33,11 +36,9 @@ if os.path.exists(STAGING_DIR):
         for f in files if f.lower().endswith(".mp4")
     ]
 
-PATH_MAP = {os.path.basename(f): f for f in raw_files}
+# FIX: Strip the .mp4 extension so {vid} is just the raw name
+PATH_MAP = {os.path.splitext(os.path.basename(f))[0]: f for f in raw_files}
 VIDEOS   = list(PATH_MAP.keys())
-
-
-import glob
 
 def find_existing_output(vid, rule_folder, filename_template):
     """
@@ -48,22 +49,14 @@ def find_existing_output(vid, rule_folder, filename_template):
     pattern = f"{OUTPUT_DIR}/{rule_folder}/*/{filename_template.format(vid=vid)}"
     matches = sorted(glob.glob(pattern))
     if matches:
-        return matches[-1]
+        return matches[-1] # Uses the file from a previous batch
     return f"{OUTPUT_DIR}/{rule_folder}/{BATCH_ID}/{filename_template.format(vid=vid)}"
 
 POSTPROCESSED_PATHS = [find_existing_output(vid, "postprocessed", "{vid}.csv") for vid in VIDEOS]
 STATS_PATHS = [find_existing_output(vid, "qc", "{vid}/{vid}_stats.csv") for vid in VIDEOS]
-
-#include: "rules/ingest.smk"
-include: "rules/preprocess.smk"
-include: "rules/resize.smk"
-include: "rules/dlc_inference.smk"
-include: "rules/postprocess.smk"
-include: "rules/qc.smk"
-
-
 ALL_INPUTS = POSTPROCESSED_PATHS + [f"{OUTPUT_DIR}/qc/{BATCH_ID}/qc_summary.csv"]
 
+# --- 3. TARGET RULE ---
 rule all:
     input:
         all_targets=ALL_INPUTS
