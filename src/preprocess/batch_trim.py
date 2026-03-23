@@ -51,7 +51,9 @@ with open(log_file, "a") as log:
     videos = sorted(input_dir.rglob("*.mp4")) + sorted(input_dir.rglob("*.MP4"))
 
     for video in videos:
-        timestamp = lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        def timestamp():
+            return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
         src_size_mb = video.stat().st_size / 1e6
         trimmed_name = f"trimmed_{video.stem}.{ext}"
         resized_name = f"trimmed_{video.stem}.{ext}"
@@ -80,7 +82,10 @@ with open(log_file, "a") as log:
             elapsed = time.time() - t0
             if result.returncode == 0 and trimmed_out.exists():
                 size_mb = trimmed_out.stat().st_size / 1e6
-                trim_status = f"SUCCESS | output={trimmed_out} | size={size_mb:.1f}MB | time={elapsed:.1f}s"
+                trim_status = (
+                    f"SUCCESS | output={trimmed_out} | "
+                    f"size={size_mb:.1f}MB | time={elapsed:.1f}s"
+                )
             elif result.returncode == 0:
                 trim_status = (
                     f"SUCCESS | output not found at {trimmed_out} | time={elapsed:.1f}s"
@@ -98,7 +103,8 @@ with open(log_file, "a") as log:
         if trimmed_out is None or not trimmed_out.exists():
             resize_status = "SKIPPED | no trimmed source available"
             log.write(
-                f"[{timestamp()}] {video.name} (src={src_size_mb:.1f}MB) [RESIZE]: {resize_status}\n"
+                f"[{timestamp()}] {video.name} "
+                f"(src={src_size_mb:.1f}MB) [RESIZE]: {resize_status}\n"
             )
             print(f"{video.name} [RESIZE]: {resize_status}")
             continue
@@ -134,7 +140,10 @@ with open(log_file, "a") as log:
             elapsed = time.time() - t0
             if result.returncode == 0 and resized_out.exists():
                 size_mb = resized_out.stat().st_size / 1e6
-                resize_status = f"SUCCESS | output={resized_out} | size={size_mb:.1f}MB | time={elapsed:.1f}s"
+                resize_status = (
+                    f"SUCCESS | output={resized_out} | "
+                    f"size={size_mb:.1f}MB | time={elapsed:.1f}s"
+                )
             elif result.returncode == 0:
                 resize_status = (
                     f"SUCCESS | output not found at {resized_out} | time={elapsed:.1f}s"

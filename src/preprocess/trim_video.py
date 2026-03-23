@@ -23,7 +23,7 @@ ext = "mp4"
 def parse_and_setup():
     global trim_start, fps, duration, policy, use_gpu, input_path, output_path, codec, ext
     try:
-        snakemake
+        snakemake  # noqa: F821
     except NameError:
         parser = argparse.ArgumentParser(
             description="Trim one video using optimized ffmpeg."
@@ -59,15 +59,15 @@ def parse_and_setup():
             fname = f"trimmed_{Path(input_path).stem}.{ext.strip('.')}"
             output_path = str(out_dir / fname)
     else:
-        input_path = snakemake.input[0]
-        output_path = snakemake.output[0]
-        trim_start = snakemake.config["trim_start_seconds"]
-        fps = snakemake.config["fps"]
-        duration = snakemake.config["trim_duration_seconds"]
-        policy = snakemake.config["frame_rate_handling_policy"]
-        use_gpu = snakemake.config.get("use_gpu", True)
-        codec = snakemake.config.get("output_codec", "libx264")
-        ext = snakemake.config.get("output_container", "mp4")
+        input_path = snakemake.input[0]  # noqa: F821
+        output_path = snakemake.output[0]  # noqa: F821
+        trim_start = snakemake.config["trim_start_seconds"]  # noqa: F821
+        fps = snakemake.config["fps"]  # noqa: F821
+        duration = snakemake.config["trim_duration_seconds"]  # noqa: F821
+        policy = snakemake.config["frame_rate_handling_policy"]  # noqa: F821
+        use_gpu = snakemake.config.get("use_gpu", True)  # noqa: F821
+        codec = snakemake.config.get("output_codec", "libx264")  # noqa: F821
+        ext = snakemake.config.get("output_container", "mp4")  # noqa: F821
 
 
 ffmpeg_exe = shutil.which("ffmpeg") or "ffmpeg"
