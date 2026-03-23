@@ -10,7 +10,7 @@ rule postprocess:
         f"{LOG_DIR}/{{vid}}_postprocess.log"
     shell:
         """
-        python ../src/postprocess/h5_to_csv.py \
+        python3 ../src/postprocess/h5_to_csv.py \
             --h5 {input.h5} \
             --out_csv {output.csv} \
             --log_file {log} \

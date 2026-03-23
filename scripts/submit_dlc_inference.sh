@@ -4,7 +4,7 @@ if [ -z "$SLURM_JOB_ID" ]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
     ROOT_DIR="$(dirname "$SCRIPT_DIR")"
     export PROJECT_CONFIG_PATH="$ROOT_DIR/configs/config.yaml"
-    export PROJECT_BASE_DIR=$(python -c "import yaml, os; print(os.path.abspath(os.path.join('${ROOT_DIR}', yaml.safe_load(open('${PROJECT_CONFIG_PATH}'))['base_dir'])))")
+    export PROJECT_BASE_DIR=$(python3 -c "import yaml, os; print(os.path.abspath(os.path.join('${ROOT_DIR}', yaml.safe_load(open('${PROJECT_CONFIG_PATH}'))['base_dir'])))")
     
     echo "Submitting dlc_inference job to SLURM with logs at ${PROJECT_BASE_DIR}/logs/"
     sbatch \
@@ -25,20 +25,19 @@ source activate icmh-dlc-310
 
 cd "${PROJECT_BASE_DIR}"
 
-BATCH_ID=$(python -c "
-import yaml
+BATCH_ID=$(python3 -c "
+import yaml, os
 from datetime import datetime
 bid = yaml.safe_load(open(os.environ['PROJECT_CONFIG_PATH'])).get('batch_id', 'auto')
 print(datetime.now().strftime('batch_%Y%m%d_%H%M%S') if bid == 'auto' else bid)
 ")
 echo "Batch ID: ${BATCH_ID}"
 
-BATCH_DIR="${PROJECT_BASE_DIR}/outputs/${BATCH_ID}"
 DLC_RESULTS_DIR="${PROJECT_BASE_DIR}/outputs/dlc_results/${BATCH_ID}"
 
 # Use associative array to deduplicate videos, keeping only the latest version (since glob sorts alphabetically)
 declare -A LATEST_VIDEOS
-for video in "${PROJECT_BASE_DIR}/outputs/trimmed_resized/"*/*.mp4; do
+for video in "${PROJECT_BASE_DIR}/outputs/resized/"*/*.mp4; do
     [ -e "$video" ] || continue
     filename=$(basename -- "$video")
     vid_stem="${filename%.*}"
@@ -46,18 +45,29 @@ for video in "${PROJECT_BASE_DIR}/outputs/trimmed_resized/"*/*.mp4; do
     LATEST_VIDEOS["$stem_no_prefix"]="$video"
 done
 
+# Collect only videos that actually need processing
+declare -A PENDING_VIDEOS
 for stem in "${!LATEST_VIDEOS[@]}"; do
-    video="${LATEST_VIDEOS[$stem]}"
-    
-    # Check if inference output already exists for this video
     EXISTING_H5=$(ls "${PROJECT_BASE_DIR}/outputs/dlc_results/"*/"${stem}_superanimal.h5" 2>/dev/null | head -n 1)
     if [ -n "$EXISTING_H5" ] && [ -e "$EXISTING_H5" ]; then
-        echo "Inference already exists for $video (found at $EXISTING_H5). Skipping."
-        continue
+        echo "Inference already exists for ${stem} (found at $EXISTING_H5). Skipping."
+    else
+        PENDING_VIDEOS["$stem"]="${LATEST_VIDEOS[$stem]}"
     fi
+done
 
+if [ ${#PENDING_VIDEOS[@]} -eq 0 ]; then
+    echo "All videos already processed. Nothing to do."
+    exit 0
+fi
+
+# Only create output dir once we know there's real work
+mkdir -p "$DLC_RESULTS_DIR"
+
+for stem in "${!PENDING_VIDEOS[@]}"; do
+    video="${PENDING_VIDEOS[$stem]}"
     echo "Running inference on $video..."
-    python src/dlc/run_dlc_inference.py \
+    python3 src/dlc/run_dlc_inference.py \
         --videos "$video" \
         --out_dir "$DLC_RESULTS_DIR" \
         --out_h5 "${DLC_RESULTS_DIR}/${stem}_superanimal.h5" \

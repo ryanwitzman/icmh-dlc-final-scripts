@@ -17,7 +17,7 @@ rule quality_control:
         f"{LOG_DIR}/{{vid}}_qc.log"
     shell:
         """
-        python {input.script} \
+        python3 {input.script} \
             --input {input.csv} \
             --outdir {params.outdir} \
             --vid {params.vid_name} \

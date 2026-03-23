@@ -13,7 +13,7 @@ rule ingest:
         f"{LOG_DIR}/{BATCH_ID}_ingest_snakemake.log"
     shell:
         """
-        python ../src/ingest/hpc_ingest.py \
+        python3 ../src/ingest/hpc_ingest.py \
             --sharepoint-url  "{params.sharepoint_url}" \
             --remote-path     "{params.remote_path}" \
             --staging-dir     "{params.staging_dir}" \

@@ -4,7 +4,7 @@ if [ -z "$SLURM_JOB_ID" ]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
     ROOT_DIR="$(dirname "$SCRIPT_DIR")"
     export PROJECT_CONFIG_PATH="$ROOT_DIR/configs/config.yaml"
-    export PROJECT_BASE_DIR=$(python -c "import yaml, os; print(os.path.abspath(os.path.join('${ROOT_DIR}', yaml.safe_load(open('${PROJECT_CONFIG_PATH}'))['base_dir'])))")
+    export PROJECT_BASE_DIR=$(python3 -c "import yaml, os; print(os.path.abspath(os.path.join('${ROOT_DIR}', yaml.safe_load(open('${PROJECT_CONFIG_PATH}'))['base_dir'])))")
 
     echo "Submitting trim_video job to SLURM with logs at ${PROJECT_BASE_DIR}/logs/"
     sbatch \
@@ -20,22 +20,65 @@ if [ -z "$SLURM_JOB_ID" ]; then
     exit $?
 fi
 
+module load conda/25.3.0
+source activate icmh-dlc-310
+
 cd "${PROJECT_BASE_DIR}"
 
-BATCH_ID=$(python -c "
+BATCH_ID=$(python3 -c "
 import yaml, os
 from datetime import datetime
 bid = yaml.safe_load(open(os.environ['PROJECT_CONFIG_PATH'])).get('batch_id', 'auto')
 print(datetime.now().strftime('batch_%Y%m%d_%H%M%S') if bid == 'auto' else bid)
 ")
 
+RESIZE_SCALE=$(python3 -c "
+import yaml, os
+print(yaml.safe_load(open(os.environ['PROJECT_CONFIG_PATH'])).get('resize_scale', 'iw/2:ih/2'))
+")
+
 INPUT_FILE="${PROJECT_BASE_DIR}/staging/CR_D4_3-11-24_SP_RM1.MP4"
 FILENAME=$(basename -- "$INPUT_FILE")
 STEM="${FILENAME%.*}"
-EXT="${FILENAME##*.}"
-# Convert ext to lowercase mp4 to match python fallbacks
-EXT="mp4" 
+EXT="mp4"
 
-OUTPUT_FILE="${PROJECT_BASE_DIR}/outputs/trimmed/${BATCH_ID}/trimmed_${STEM}.${EXT}"
+TRIMMED_FILE="${PROJECT_BASE_DIR}/outputs/trimmed/${BATCH_ID}/trimmed_${STEM}.${EXT}"
+RESIZED_FILE="${PROJECT_BASE_DIR}/outputs/resized/${BATCH_ID}/trimmed_${STEM}.${EXT}"
 
-python src/preprocess/trim_video.py --input-file "$INPUT_FILE" --output-file "$OUTPUT_FILE"
+# ── TRIM ──────────────────────────────────────────────────────────────────────
+EXISTING_TRIM=$(ls "${PROJECT_BASE_DIR}/outputs/trimmed/"*"/trimmed_${STEM}.${EXT}" 2>/dev/null | head -n 1)
+if [ -n "$EXISTING_TRIM" ]; then
+    echo "Already trimmed: $EXISTING_TRIM. Skipping trim."
+    TRIMMED_FILE="$EXISTING_TRIM"
+else
+    mkdir -p "$(dirname "$TRIMMED_FILE")"
+    echo "Trimming $INPUT_FILE..."
+    python3 src/preprocess/trim_video.py \
+        --input-file "$INPUT_FILE" \
+        --output-file "$TRIMMED_FILE"
+    if [ $? -ne 0 ] || [ ! -f "$TRIMMED_FILE" ]; then
+        echo "ERROR: Trim failed for $INPUT_FILE. Aborting."
+        exit 1
+    fi
+    echo "Trim complete: $TRIMMED_FILE"
+fi
+
+# ── RESIZE ────────────────────────────────────────────────────────────────────
+EXISTING_RESIZE=$(ls "${PROJECT_BASE_DIR}/outputs/resized/"*"/trimmed_${STEM}.${EXT}" 2>/dev/null | head -n 1)
+if [ -n "$EXISTING_RESIZE" ]; then
+    echo "Already resized: $EXISTING_RESIZE. Skipping resize."
+else
+    mkdir -p "$(dirname "$RESIZED_FILE")"
+    echo "Resizing $TRIMMED_FILE..."
+    ffmpeg -y \
+        -i "$TRIMMED_FILE" \
+        -vf "scale=${RESIZE_SCALE}" \
+        -c:v libx264 -crf 18 -preset fast \
+        -an \
+        "$RESIZED_FILE"
+    if [ $? -ne 0 ] || [ ! -f "$RESIZED_FILE" ]; then
+        echo "ERROR: Resize failed for $TRIMMED_FILE. Aborting."
+        exit 1
+    fi
+    echo "Resize complete: $RESIZED_FILE"
+fi

@@ -7,7 +7,7 @@ TIME=$5
 GPUS=$6
 JOBSCRIPT=$7
 
-BASE_DIR=$(python -c "import yaml; print(yaml.safe_load(open('../configs/config.yaml'))['base_dir'])")
+BASE_DIR=$(python3 -c "import yaml; print(yaml.safe_load(open('../configs/config.yaml'))['base_dir'])")
 
 SBATCH_ARGS=(
   --partition="$PARTITION"
