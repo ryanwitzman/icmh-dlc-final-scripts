@@ -4,8 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from qc import qc_analytics  # noqa: E402
-
+from qc import qc_analytics
 
 def test_qc_analytics_logic(tmp_path):
     output_dir = tmp_path / "qc"

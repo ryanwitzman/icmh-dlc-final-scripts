@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from preprocess import trim_video  # noqa: E402
+from preprocess import trim_video
 
 
 def test_has_nvenc_success(mocker):

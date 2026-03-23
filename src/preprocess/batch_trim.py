@@ -53,9 +53,8 @@ with open(log_file, "a") as log:
         timestamp       = lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         src_size_mb     = video.stat().st_size / 1e6
         trimmed_name    = f"trimmed_{video.stem}.{ext}"
-        resized_name    = f"trimmed_{video.stem}.{ext}"   # same filename, different dir
+        resized_name    = f"trimmed_{video.stem}.{ext}"                                 
 
-        # ── TRIM ─────────────────────────────────────────────────────────────
         existing_trim = already_processed("trimmed", trimmed_name)
         if existing_trim:
             trim_status = f"SKIPPED | previously trimmed at {existing_trim}"
@@ -85,8 +84,7 @@ with open(log_file, "a") as log:
         log.write(f"[{timestamp()}] {video.name} (src={src_size_mb:.1f}MB) [TRIM]: {trim_status}\n")
         print(f"{video.name} [TRIM]: {trim_status}")
 
-        # ── RESIZE ───────────────────────────────────────────────────────────
-        # Skip resize if trim failed/missing — nothing to resize from
+                                                                     
         if trimmed_out is None or not trimmed_out.exists():
             resize_status = "SKIPPED | no trimmed source available"
             log.write(f"[{timestamp()}] {video.name} (src={src_size_mb:.1f}MB) [RESIZE]: {resize_status}\n")

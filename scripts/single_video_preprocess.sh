@@ -37,7 +37,6 @@ import yaml, os
 print(yaml.safe_load(open(os.environ['PROJECT_CONFIG_PATH'])).get('resize_scale', 'iw/2:ih/2'))
 ")
 
-# ── LOGGING ───────────────────────────────────────────────────────────────────
 LOG_DIR="${PROJECT_BASE_DIR}/outputs/logs/${BATCH_ID}"
 mkdir -p "$LOG_DIR"
 LOG_FILE="${LOG_DIR}/trim_video_log.txt"
@@ -53,7 +52,6 @@ log() {
     echo "--- Batch Run: $(date '+%Y-%m-%d %H:%M:%S') ---"
 } | tee -a "$LOG_FILE"
 
-# ── INPUT ─────────────────────────────────────────────────────────────────────
 INPUT_FILE="${PROJECT_BASE_DIR}/staging/CR_D4_3-11-24_SP_RM1.MP4"
 FILENAME=$(basename -- "$INPUT_FILE")
 STEM="${FILENAME%.*}"
@@ -64,7 +62,6 @@ SRC_MB=$(python3 -c "import os; print(f'{os.path.getsize(\"${INPUT_FILE}\") / 1e
 TRIMMED_FILE="${PROJECT_BASE_DIR}/outputs/trimmed/${BATCH_ID}/trimmed_${STEM}.${EXT}"
 RESIZED_FILE="${PROJECT_BASE_DIR}/outputs/resized/${BATCH_ID}/trimmed_${STEM}.${EXT}"
 
-# ── TRIM ──────────────────────────────────────────────────────────────────────
 EXISTING_TRIM=$(ls "${PROJECT_BASE_DIR}/outputs/trimmed/"*"/trimmed_${STEM}.${EXT}" 2>/dev/null | head -n 1)
 if [ -n "$EXISTING_TRIM" ]; then
     log "${FILENAME} (src=${SRC_MB}MB) [TRIM]: SKIPPED | previously trimmed at ${EXISTING_TRIM}"
@@ -82,7 +79,6 @@ else
     log "${FILENAME} (src=${SRC_MB}MB) [TRIM]: DONE | ${TRIMMED_FILE}"
 fi
 
-# ── RESIZE ────────────────────────────────────────────────────────────────────
 EXISTING_RESIZE=$(ls "${PROJECT_BASE_DIR}/outputs/resized/"*"/trimmed_${STEM}.${EXT}" 2>/dev/null | head -n 1)
 if [ -n "$EXISTING_RESIZE" ]; then
     log "${FILENAME} (src=${SRC_MB}MB) [RESIZE]: SKIPPED | previously resized at ${EXISTING_RESIZE}"

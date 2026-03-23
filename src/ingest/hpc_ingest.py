@@ -14,7 +14,7 @@ import requests
 from tqdm import tqdm
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0"
-CHUNK_SIZE = 8 * 1024 * 1024  # 8 MB download chunks
+CHUNK_SIZE = 8 * 1024 * 1024                        
 SCOPES = [
     "https://graph.microsoft.com/Sites.Read.All",
     "https://graph.microsoft.com/Files.Read.All",
@@ -69,7 +69,7 @@ def get_access_token(tenant_id: str, client_id: str) -> str:
         flow = app.initiate_device_flow(scopes=SCOPES)
         if "user_code" not in flow:
             raise RuntimeError(f"Device flow failed: {flow.get('error_description')}")
-        print("\n" + flow["message"])  # prints the URL + code for the user
+        print("\n" + flow["message"])                                      
         print()
         result = app.acquire_token_by_device_flow(flow)
 
@@ -100,8 +100,8 @@ def resolve_drive_and_item(token: str, sharepoint_url: str, remote_path: str):
     from urllib.parse import urlparse
 
     parsed = urlparse(sharepoint_url)
-    host = parsed.netloc  # contoso.sharepoint.com
-    sp_path = parsed.path.rstrip("/")  # /sites/MyTeam
+    host = parsed.netloc                          
+    sp_path = parsed.path.rstrip("/")                 
 
     site_url = f"{GRAPH_BASE}/sites/{host}:{sp_path}"
     site_data = graph_get(token, site_url)
@@ -138,7 +138,7 @@ def walk_mp4s(token: str, drive_id: str, item_id: str, logger: logging.Logger):
                     "quickXorHash": fh.get("quickXorHash", ""),
                     "sha256remote": fh.get("sha256Hash", "").lower(),
                 }
-        url = data.get("@odata.nextLink")  # pagination
+        url = data.get("@odata.nextLink")              
 
 def sha256_file(path: Path) -> str:
     h = hashlib.sha256()

@@ -25,7 +25,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-CHUNK_SIZE = 8 * 1024 * 1024  # 8 MB
+CHUNK_SIZE = 8 * 1024 * 1024
 MANIFEST_COLUMNS = ["file_path", "file_name", "size_bytes", "sha256", "recorded_at"]
 
 

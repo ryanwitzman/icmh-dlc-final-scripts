@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# ─── 1. LOGIN NODE LOGIC ──────────────────────────────────────────────────────
 if [ -z "$SLURM_JOB_ID" ]; then
     SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]:-$0}")"
     SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
@@ -36,7 +35,6 @@ if [ -z "$SLURM_JOB_ID" ]; then
     exit $?
 fi
 
-# ─── 2. COMPUTE NODE LOGIC ────────────────────────────────────────────────────
 set -eo pipefail
 
 LOG_DIR="${PROJECT_BASE_DIR}/outputs/logs/${BATCH_ID}"
@@ -57,11 +55,9 @@ cd "${PROJECT_BASE_DIR}"
 DLC_RESULTS_DIR="${PROJECT_BASE_DIR}/outputs/dlc_results/${BATCH_ID}"
 mkdir -p "$DLC_RESULTS_DIR"
 
-# ─── 3. VIDEO PROCESSING ─────────────────────────────────────────────────────
 declare -A ALL_VIDEOS
 declare -A PENDING_VIDEOS
 
-# 1. Grab all valid videos
 while IFS= read -r -d '' video; do
     filename=$(basename -- "$video")
     vid_stem="${filename%.*}"
@@ -71,7 +67,6 @@ done < <(find "${PROJECT_BASE_DIR}/outputs/resized/" -type f -name "*.mp4" -prin
 
 echo "Found ${#ALL_VIDEOS[@]} total video(s) in resized folder."
 
-# 2. Filter out the ones we already processed
 for stem in "${!ALL_VIDEOS[@]}"; do
     video="${ALL_VIDEOS[$stem]}"
     
@@ -84,7 +79,6 @@ for stem in "${!ALL_VIDEOS[@]}"; do
     fi
 done
 
-# 3. Stop if everything is done
 if [ ${#PENDING_VIDEOS[@]} -eq 0 ]; then
     echo "All videos have already been processed. Nothing to do!"
     echo "=== Job ${SLURM_JOB_ID} finished at $(date) ==="
@@ -93,7 +87,6 @@ fi
 
 echo "Proceeding with inference on ${#PENDING_VIDEOS[@]} pending video(s)..."
 
-# 4. Run inference
 for stem in "${!PENDING_VIDEOS[@]}"; do
     video="${PENDING_VIDEOS[$stem]}"
     

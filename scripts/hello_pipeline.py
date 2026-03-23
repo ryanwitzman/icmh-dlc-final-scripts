@@ -15,9 +15,6 @@ def main():
 
     project_root = config_path.parent.parent
     base_dir = config.get("base_dir", ".")
-
-    # If base_dir is absolute, Path will use it directly.
-    # If relative, it anchors it to project_root.
     base = (project_root / base_dir).resolve()
 
     search_dirs = [

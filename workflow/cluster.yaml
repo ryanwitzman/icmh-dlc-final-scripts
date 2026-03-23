@@ -53,4 +53,3 @@ aggregate_qc:
   mem: 2G
   time: "00:10:00"
   gpus: 0
-

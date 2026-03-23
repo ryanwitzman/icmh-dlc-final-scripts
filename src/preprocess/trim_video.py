@@ -59,15 +59,15 @@ def parse_and_setup():
             fname = f"trimmed_{Path(input_path).stem}.{ext.strip('.')}"
             output_path = str(out_dir / fname)
     else:
-        input_path = snakemake.input[0]  # type: ignore  # noqa: F821
-        output_path = snakemake.output[0]  # type: ignore  # noqa: F821
-        trim_start = snakemake.config["trim_start_seconds"]  # type: ignore  # noqa: F821
-        fps = snakemake.config["fps"]  # type: ignore  # noqa: F821
-        duration = snakemake.config["trim_duration_seconds"]  # type: ignore  # noqa: F821
-        policy = snakemake.config["frame_rate_handling_policy"]  # type: ignore  # noqa: F821
-        use_gpu = snakemake.config.get("use_gpu", True)  # type: ignore  # noqa: F821
-        codec = snakemake.config.get("output_codec", "libx264")  # type: ignore  # noqa: F821
-        ext = snakemake.config.get("output_container", "mp4")  # type: ignore  # noqa: F821
+        input_path = snakemake.input[0]                              
+        output_path = snakemake.output[0]                              
+        trim_start = snakemake.config["trim_start_seconds"]                              
+        fps = snakemake.config["fps"]                              
+        duration = snakemake.config["trim_duration_seconds"]                              
+        policy = snakemake.config["frame_rate_handling_policy"]                              
+        use_gpu = snakemake.config.get("use_gpu", True)                              
+        codec = snakemake.config.get("output_codec", "libx264")                              
+        ext = snakemake.config.get("output_container", "mp4")                              
 
 
 ffmpeg_exe = shutil.which("ffmpeg") or "ffmpeg"
@@ -149,7 +149,7 @@ def process_video():
             raise RuntimeError(f"FFmpeg failed with code {result.returncode}")
         print(f"Done: {output_path}")
 
-        # Write clip provenance card
+                                    
         provenance = {
             "source_video": input_path,
             "output_video": output_path,

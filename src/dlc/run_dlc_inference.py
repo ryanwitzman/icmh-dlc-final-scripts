@@ -9,9 +9,6 @@ import time
 from pathlib import Path
 
 
-# ---------------------------------------------------------------------------
-# Flushing handlers — every emit() immediately hits stdout
-# ---------------------------------------------------------------------------
 
 class FlushingStreamHandler(logging.StreamHandler):
     def emit(self, record):
@@ -43,9 +40,6 @@ def setup_logging() -> None:
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Environment info
-# ---------------------------------------------------------------------------
 
 def log_environment() -> None:
     logger.info("Gathering environment and GPU allocation data...")
@@ -105,9 +99,6 @@ def log_environment() -> None:
     logger.info("=" * 60)
 
 
-# ---------------------------------------------------------------------------
-# DLC subprocess wrapper — streams stdout live to logger
-# ---------------------------------------------------------------------------
 
 def run_dlc_inference_subprocess(
     videos: list[Path],
@@ -122,9 +113,9 @@ def run_dlc_inference_subprocess(
     streamed line-by-line into our logger in real time.
     """
     cmd = [
-        sys.executable, "-u",          # -u = unbuffered Python output
+        sys.executable, "-u",                                         
         __file__,
-        "--_subprocess",               # internal flag — runs inference directly
+        "--_subprocess",                                                        
         "--out_dir",    str(out_dir),
         "--batch_id",   batch_id,
         "--superanimal", superanimal,
@@ -143,17 +134,17 @@ def run_dlc_inference_subprocess(
     proc = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,   # merge stderr into stdout
+        stderr=subprocess.STDOUT,                             
         text=True,
-        bufsize=1,                  # line-buffered
+        bufsize=1,                                 
         env=env,
     )
 
     for line in proc.stdout:
         line = line.rstrip("\n")
         if line:
-            # Direct print prevents the parent logger from wrapping the 
-            # child's already-timestamped log line in a second timestamp.
+                                                                        
+                                                                         
             print(f"[dlc-worker] {line}", flush=True)
 
     proc.wait()
@@ -161,13 +152,6 @@ def run_dlc_inference_subprocess(
         raise RuntimeError(f"DLC subprocess exited with code {proc.returncode}")
 
 
-# ---------------------------------------------------------------------------
-# Core inference (runs inside the subprocess)
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
-# Core inference (runs inside the subprocess)
-# ---------------------------------------------------------------------------
 
 def run_inference(args) -> None:
     out_dir = Path(args.out_dir)
@@ -193,7 +177,7 @@ def run_inference(args) -> None:
     logger.info(f"Model            : {args.config_path or args.superanimal}")
     logger.info("=" * 60)
 
-    # --- THE SYMLINK TRICK ---
+                               
     logger.info("Setting up working directory to route DLC outputs...")
     working_videos = []
     for video_path in videos:
@@ -202,7 +186,7 @@ def run_inference(args) -> None:
             try:
                 os.symlink(video_path.resolve(), symlink_path)
             except OSError:
-                # Fallback to copy if symlinks are restricted on the file system
+                                                                                
                 import shutil
                 shutil.copy2(video_path, symlink_path)
         working_videos.append(symlink_path)
@@ -217,7 +201,7 @@ def run_inference(args) -> None:
         logger.info("Starting inference in Standard Project Mode...")
         deeplabcut.analyze_videos(
             args.config_path,
-            [str(v) for v in working_videos], # Use the symlinks
+            [str(v) for v in working_videos],                   
             videotype=working_videos[0].suffix.lstrip(".") or "mp4",
             save_as_csv=True,
             destfolder=str(out_dir),
@@ -228,14 +212,14 @@ def run_inference(args) -> None:
             f"video_adapt={args.video_adapt}..."
         )
         deeplabcut.video_inference_superanimal(
-            [str(v) for v in working_videos], # Use the symlinks
+            [str(v) for v in working_videos],                   
             args.superanimal,
             videotype=working_videos[0].suffix.lstrip(".") or "mp4",
             video_adapt=args.video_adapt,
         )
 
     logger.info("Locating target H5 files...")
-    # Now look in out_dir because DLC saved everything there!
+                                                             
     for sym_path, orig_path in zip(working_videos, videos):
         h5_candidates = sorted(out_dir.glob(f"{sym_path.stem}*.h5"))
             
@@ -258,16 +242,13 @@ def run_inference(args) -> None:
             shutil.copy2(src_h5, target_path)
             logger.info(f"Linked H5: {src_h5.name} -> {target_path.name}")
 
-    # --- CLEANUP SYMLINKS ---
+                              
     for sym_path in working_videos:
         if sym_path.exists():
             sym_path.unlink()
 
     elapsed = time.time() - t0
     logger.info(f"SUCCESS: Inference completed in {elapsed:.1f}s.")
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -289,7 +270,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--video_adapt", action="store_true",
                    help="(SuperAnimal only) Enable unsupervised video adaptation.")
 
-    # Internal flag used when this script spawns itself as a subprocess
+                                                                       
     p.add_argument("--_subprocess", action="store_true", help=argparse.SUPPRESS)
     return p
 
@@ -297,7 +278,6 @@ def build_parser() -> argparse.ArgumentParser:
 def main():
     args = build_parser().parse_args()
 
-    # Resolve video list
     if args.video_dir:
         videos = list(Path(args.video_dir).glob("*.mp4"))
         if not videos:
@@ -307,19 +287,18 @@ def main():
 
     out_dir  = Path(args.out_dir)
     
-    # Initialize stdout logging
     setup_logging()
 
-    # Only print the expected log file path from the parent process
+                                                                   
     if not args._subprocess:
         log_file = out_dir.parent.parent / "logs" / args.batch_id / "dlc_inference_log.txt"
         logger.info(f"Bash is managing logs to: {log_file}")
 
     if args._subprocess:
-        # We're inside the child process — run inference directly
+                                                                 
         run_inference(args)
     else:
-        # We're the parent — log environment info here, then spawn child
+                                                                        
         log_environment()
         try:
             run_dlc_inference_subprocess(
