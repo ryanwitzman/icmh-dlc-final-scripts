@@ -11,10 +11,10 @@
 
 ## Documentation
 ### Environment & Installation
-DeepLabCut 2.3.11 is installed via Mamba/Conda. If you need to recreate it:
+DeepLabCut 2.3.11 is installed via Conda. If you need to recreate it:
 ```bash
-module load mamba/latest
-mamba env create -f envs/environment.yml
+module load conda/25.3.0
+conda env create -f envs/environment.yml
 conda activate icmh-dlc-310
 ```
 

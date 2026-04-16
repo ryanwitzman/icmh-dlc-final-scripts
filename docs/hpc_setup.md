@@ -4,8 +4,8 @@
 We have env files for both Linux and Windows. If you're running this on the cluster:
 
 ```bash
-module load mamba/latest
-mamba env create -f envs/environment.yml
+module load conda/25.3.0
+conda env create -f envs/environment.yml
 conda activate icmh-dlc-310
 ```
 This installs DeepLabCut 2.3.11 and all the dependencies.

@@ -14,7 +14,7 @@ Docs:
 1. Clone this to your scratch or project dir on the cluster.
 2. Build the env:
    ```bash
-   mamba env create -f envs/environment.yml
+   conda env create -f envs/environment.yml
    conda activate icmh-dlc-310
    ```
 3. Put your raw `.mp4` videos in `staging/` (if not using the ingest script).
