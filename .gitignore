@@ -26,3 +26,4 @@ __pycache__/
 directions/
 read_pdf.py
 *.txt
+sp_auth.json
