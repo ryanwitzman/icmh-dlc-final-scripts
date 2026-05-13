@@ -31,7 +31,8 @@ if os.path.exists(STAGING_DIR):
     raw_files = [
         os.path.join(dirpath, f)
         for dirpath, _, files in os.walk(STAGING_DIR)
-        for f in files if f.lower().endswith(".mp4")
+        # Ensure it is an MP4 and NOT a previously trimmed file
+        for f in files if f.lower().endswith(".mp4") and ".trimmed" not in f.lower()
     ]
 
 PATH_MAP = {os.path.splitext(os.path.basename(f))[0]: f for f in raw_files}
@@ -79,11 +80,11 @@ rule resize_for_dlc:
     shell:
         """
         ffmpeg -y \
-            -i {input.video} \
+            -i "{input.video}" \
             -vf "scale={params.scale}" \
             -c:v libx264 -crf 18 -preset fast \
             -an \
-            {output.video} > {log} 2>&1
+            "{output.video}" > "{log}" 2>&1
         """
 
 rule dlc_inference:
@@ -99,11 +100,11 @@ rule dlc_inference:
     shell:
         """
         python3 -u ../src/dlc/run_dlc_inference.py \
-            --videos {input.video} \
-            --out_dir {params.out_dir} \
-            --out_h5 {output.h5} \
-            --batch_id {BATCH_ID} \
-            {params.model_arg} > {log} 2>&1
+            --videos "{input.video}" \
+            --out_dir "{params.out_dir}" \
+            --out_h5 "{output.h5}" \
+            --batch_id "{BATCH_ID}" \
+            {params.model_arg} > "{log}" 2>&1
         """
 
 rule postprocess:
@@ -118,9 +119,9 @@ rule postprocess:
     shell:
         """
         python3 ../src/postprocess/h5_to_csv.py \
-            --h5 {input.h5} \
-            --out_csv {output.csv} \
-            --log_file {log} \
+            --h5 "{input.h5}" \
+            --out_csv "{output.csv}" \
+            --log_file "{log}" \
             --pcutoff {params.pcutoff}
         """
 
@@ -140,22 +141,8 @@ rule quality_control:
     shell:
         """
         python3 ../src/qc/qc_analytics.py \
-            --input {input.csv} \
-            --outdir {params.outdir} \
-            --vid {params.vid_name} \
-            --stats_out {output.stats} > {log} 2>&1
+            --input "{input.csv}" \
+            --outdir "{params.outdir}" \
+            --vid "{params.vid_name}" \
+            --stats_out "{output.stats}" > "{log}" 2>&1
         """
-
-rule aggregate_qc:
-    input:
-        stats = list(STATS_INPUTS.values())
-    output:
-        summary = f"{OUTPUT_DIR}/qc/{BATCH_ID}/qc_summary.csv"
-    run:
-        df_list = [pd.read_csv(f) for f in input.stats]
-        if df_list:
-            final_df = pd.concat(df_list, ignore_index=True)
-            final_df.to_csv(output.summary, index=False)
-        else:
-            with open(output.summary, 'w') as f:
-                f.write("video,mean_conf,median_conf,frac_below_thresh\n")

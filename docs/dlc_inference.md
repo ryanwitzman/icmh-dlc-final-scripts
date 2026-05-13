@@ -1,7 +1,7 @@
 # DeepLabCut Inference on HPC
 
 ## Inputs
-- **Trimmed Videos:** These come out of the `preprocess` and `resize` steps (usually sitting in `outputs/{batch_id}/resized/`).
+- **Trimmed Videos:** These come out of the `preprocess` step (usually sitting in `outputs/{batch_id}/resized/`).
 - **DLC Project/Config:** You can point the inference script to `configs/config.yaml` (which contains your model weights and settings), or you can just use the built-in SuperAnimal models (e.g., `superanimal_topviewmouse`).
 
 ## Outputs

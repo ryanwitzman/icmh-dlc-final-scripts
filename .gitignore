@@ -27,3 +27,5 @@ directions/
 read_pdf.py
 *.txt
 sp_auth.json
+bad_trimmed_videos/
+staging copy/
