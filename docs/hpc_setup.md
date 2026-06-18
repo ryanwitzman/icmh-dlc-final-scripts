@@ -45,6 +45,10 @@ To run the full end-to-end Snakemake workflow:
 ```bash
 sbatch scripts/submit_workflow.sh
 ```
+If you have a large number of files and need to run each job individually:
+```bash
+sbatch scripts/submit_array.sh
+```
 
 ## Retrieving Logs
 There are two main places where logs are generated:
